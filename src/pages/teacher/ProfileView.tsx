@@ -24,7 +24,7 @@ export function ProfileView() {
       />
 
       {/* Profile Card */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-md border border-border overflow-hidden">
         {/* Cover */}
         <div className="h-28 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent)]" />
@@ -38,7 +38,7 @@ export function ProfileView() {
                 <AvatarImage src="/avatars/teacher.jpg" alt="Jane Doe" />
                 <AvatarFallback className="text-xl bg-primary text-primary-foreground font-bold">JD</AvatarFallback>
               </Avatar>
-              <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 h-6 w-6 rounded-full shadow border border-border">
+              <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 h-6 w-6 rounded-sm shadow border border-border">
                 <Camera className="h-3 w-3" />
               </Button>
             </div>
@@ -52,13 +52,13 @@ export function ProfileView() {
 
           {/* Info Pills */}
           <div className="flex flex-wrap gap-3 mb-5">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-3 py-1">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-sm px-3 py-1">
               <Mail className="h-3.5 w-3.5" /> jane.doe@school.edu
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-3 py-1">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-sm px-3 py-1">
               <Building2 className="h-3.5 w-3.5" /> Science Department
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-3 py-1">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-sm px-3 py-1">
               <Calendar className="h-3.5 w-3.5" /> Joined Sept 2019
             </span>
           </div>
@@ -76,7 +76,7 @@ export function ProfileView() {
       </div>
 
       {/* Edit Form */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-card rounded-md border border-border p-6">
         <h3 className="text-sm font-semibold text-foreground mb-4">Personal Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
@@ -115,7 +115,7 @@ export function ProfileView() {
       </div>
 
       {/* Preferences */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-card rounded-md border border-border p-6">
         <h3 className="text-sm font-semibold text-foreground mb-4">Preferences</h3>
         <div className="flex flex-col gap-3">
           {[

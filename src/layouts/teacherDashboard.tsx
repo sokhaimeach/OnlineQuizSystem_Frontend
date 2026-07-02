@@ -52,8 +52,26 @@ export default function TeacherDashboard() {
   const navigate = useNavigate()
 
   const currentRoute = location.pathname.replace(/^\/teacher\/?/, '') || 'dashboard'
-  const activeSection = routeToSection[currentRoute] ?? 'dashboard'
-  const breadcrumb = useMemo(() => sectionBreadcrumb[activeSection], [activeSection])
+  const activeSection = currentRoute.startsWith('subjects/')
+    ? 'subject-detail'
+    : currentRoute.startsWith('classes/')
+    || currentRoute.startsWith('students/')
+    || currentRoute.startsWith('attempts/')
+    || currentRoute.startsWith('assignments/')
+    ? 'class-detail'
+    : routeToSection[currentRoute] ?? 'dashboard'
+  const breadcrumb = useMemo(() => {
+    if (currentRoute.startsWith('students/')) {
+      return [{ label: 'Teaching' }, { label: 'Classes' }, { label: 'Student detail' }]
+    }
+    if (currentRoute.startsWith('attempts/')) {
+      return [{ label: 'Teaching' }, { label: 'Students' }, { label: 'Attempt detail' }]
+    }
+    if (currentRoute.startsWith('assignments/')) {
+      return [{ label: 'Teaching' }, { label: 'Classes' }, { label: 'Assignment attempts' }]
+    }
+    return sectionBreadcrumb[activeSection]
+  }, [activeSection, currentRoute])
 
   const handleNavigate = (section: DashboardSection) => {
     navigate(`/teacher/${sectionToRoute[section]}`)

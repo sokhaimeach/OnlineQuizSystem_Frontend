@@ -4,6 +4,12 @@ import {
   ClipboardList, BarChart3, UserCircle,
   ChevronRight,
   GraduationCap,
+  Edit3,
+  ListMinus,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarHeader,
@@ -14,6 +20,33 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { NavUser } from '@/components/nav-user'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useGetRecentClasses } from '@/hooks/api/useClass'
+import { useLocation, useNavigate } from 'react-router-dom'
+import {
+  useCreateSubject,
+  useDeleteSubject,
+  useGetAllSubjects,
+  useUpdateSubject,
+} from '@/hooks/api/useSubject'
+import type { Subject } from '@/models/subject.interface'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { SubjectFormDialog } from '@/components/teacher/SubjectFormDialog'
 
 export type DashboardSection =
   | 'dashboard'
@@ -82,6 +115,7 @@ function CollapsibleNav({
   defaultOpen = false,
   relatedSections,
   activeSection,
+  headerAction,
 }: {
   icon: React.ElementType
   label: string
@@ -89,24 +123,32 @@ function CollapsibleNav({
   defaultOpen?: boolean
   relatedSections: DashboardSection[]
   activeSection: DashboardSection
+  headerAction?: React.ReactNode
 }) {
   const isRelatedActive = relatedSections.includes(activeSection)
   return (
     <SidebarMenuItem>
       <Collapsible defaultOpen={defaultOpen || isRelatedActive} className="group/collapsible">
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton
-            tooltip={label}
-            className={cn(
-              'cursor-pointer transition-colors',
-              isRelatedActive && 'text-primary font-medium',
-            )}
-          >
-            <Icon className={cn('h-4 w-4', isRelatedActive ? 'text-primary' : 'text-muted-foreground')} />
-            <span>{label}</span>
-            <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
+        <div className="relative">
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton
+              tooltip={label}
+              className={cn(
+                'cursor-pointer pr-8 transition-colors',
+                isRelatedActive && 'text-primary font-medium',
+              )}
+            >
+              <Icon className={cn('h-4 w-4', isRelatedActive ? 'text-primary' : 'text-muted-foreground')} />
+              <span>{label}</span>
+              <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+          {headerAction && (
+            <div className="absolute right-7 top-1/2 z-10 -translate-y-1/2">
+              {headerAction}
+            </div>
+          )}
+        </div>
         <CollapsibleContent>
           <SidebarMenuSub>{children}</SidebarMenuSub>
         </CollapsibleContent>
@@ -144,6 +186,78 @@ function SubNavItem({
 }
 
 export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const recentClassesQuery = useGetRecentClasses()
+  const subjectsQuery = useGetAllSubjects()
+  const createSubjectMutation = useCreateSubject()
+  const updateSubjectMutation = useUpdateSubject()
+  const deleteSubjectMutation = useDeleteSubject()
+  const [subjectDialogOpen, setSubjectDialogOpen] = React.useState(false)
+  const [editingSubject, setEditingSubject] = React.useState<Subject | null>(null)
+  const [deletingSubject, setDeletingSubject] = React.useState<Subject | null>(null)
+  const [subjectError, setSubjectError] = React.useState('')
+
+  const subjects = subjectsQuery.data?.pages.flatMap(page => page.data.subjects) ?? []
+  const unassignedQuizCount = subjectsQuery.data?.pages[0]?.data.unassigned_quiz_count ?? 0
+  const selectedSubjectId = location.pathname.match(/^\/teacher\/subjects\/([^/]+)$/)?.[1]
+  const isSavingSubject = createSubjectMutation.isPending || updateSubjectMutation.isPending
+
+  const openClass = (classId: string) => {
+    navigate(`/teacher/classes/${classId}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const openSubject = (subjectId: string) => {
+    navigate(`/teacher/subjects/${subjectId}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const openCreateSubject = () => {
+    setEditingSubject(null)
+    setSubjectError('')
+    setSubjectDialogOpen(true)
+  }
+
+  const openEditSubject = (subject: Subject) => {
+    setEditingSubject(subject)
+    setSubjectError('')
+    setSubjectDialogOpen(true)
+  }
+
+  const openDeleteSubject = (subject: Subject) => {
+    deleteSubjectMutation.reset()
+    setDeletingSubject(subject)
+  }
+
+  const submitSubject = (payload: { subject_name: string; description?: string }) => {
+    const options = {
+      onSuccess: () => {
+        setSubjectDialogOpen(false)
+        setEditingSubject(null)
+        setSubjectError('')
+      },
+      onError: () => setSubjectError('The subject could not be saved. Please try again.'),
+    }
+
+    if (editingSubject) {
+      updateSubjectMutation.mutate({ subjectId: editingSubject.id, payload }, options)
+    } else {
+      createSubjectMutation.mutate(payload, options)
+    }
+  }
+
+  const confirmDeleteSubject = () => {
+    if (!deletingSubject) return
+    const subjectId = deletingSubject.id
+    deleteSubjectMutation.mutate(subjectId, {
+      onSuccess: () => {
+        setDeletingSubject(null)
+        if (selectedSubjectId === subjectId) navigate('/teacher/subjects/unassigned')
+      },
+    })
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       {/* Header — Branded Logo */}
@@ -190,8 +304,25 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
               relatedSections={['classes', 'class-detail']}
               activeSection={activeSection}
             >
-              <SubNavItem label="Class 10-A · Science" section="class-detail" activeSection={activeSection} onNavigate={onNavigate} />
-              <SubNavItem label="Class 9-B · Math" section="class-detail" activeSection={activeSection} onNavigate={onNavigate} />
+              {recentClassesQuery.isLoading ? (
+                Array.from({ length: 2 }).map((_, index) => (
+                  <SidebarMenuSubItem key={index}>
+                    <Skeleton className="my-1 h-6 w-full" />
+                  </SidebarMenuSubItem>
+                ))
+              ) : (
+                recentClassesQuery.data?.map(classItem => classItem.id ? (
+                  <SidebarMenuSubItem key={classItem.id}>
+                    <SidebarMenuSubButton
+                      isActive={location.pathname === `/teacher/classes/${classItem.id}`}
+                      onClick={() => openClass(classItem.id!)}
+                      className="cursor-pointer"
+                    >
+                      <span>{classItem.class_name}</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                ) : null)
+              )}
               <SubNavItem label="View All Classes" section="classes" activeSection={activeSection} onNavigate={onNavigate} />
             </CollapsibleNav>
 
@@ -200,10 +331,104 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
               label="Subjects"
               relatedSections={['subjects', 'subject-detail']}
               activeSection={activeSection}
+              headerAction={(
+                <Button
+                  type="button"
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={openCreateSubject}
+                  aria-label="Create subject"
+                  title="Create subject"
+                  className='me-5'
+                >
+                  <Plus />
+                </Button>
+              )}
             >
-              <SubNavItem label="Mathematics" section="subject-detail" activeSection={activeSection} onNavigate={onNavigate} />
-              <SubNavItem label="Physics" section="subject-detail" activeSection={activeSection} onNavigate={onNavigate} />
-              <SubNavItem label="View All Subjects" section="subjects" activeSection={activeSection} onNavigate={onNavigate} />
+              <SidebarMenuSubItem>
+                <SidebarMenuSubButton
+                  isActive={selectedSubjectId === 'unassigned'}
+                  onClick={() => openSubject('unassigned')}
+                  className="cursor-pointer"
+                >
+                  <ListMinus />
+                  <span className="flex-1">Unassigned Quiz</span>
+                  <span className="text-[10px] tabular-nums text-muted-foreground">{unassignedQuizCount}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+
+              {subjectsQuery.isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <SidebarMenuSubItem key={index}>
+                    <Skeleton className="my-1 h-6 w-full" />
+                  </SidebarMenuSubItem>
+                ))
+              ) : subjectsQuery.isError ? (
+                <SidebarMenuSubItem>
+                  <p className="px-2 py-1 text-xs text-destructive">Could not load subjects.</p>
+                </SidebarMenuSubItem>
+              ) : (
+                subjects.map(subject => (
+                  <SidebarMenuSubItem key={subject.id} className="group/subject flex min-w-0 items-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SidebarMenuSubButton
+                          isActive={selectedSubjectId === subject.id}
+                          onClick={() => openSubject(subject.id)}
+                          className="min-w-0 flex-1 cursor-pointer pr-1"
+                        >
+                          <span className="flex-1 truncate">{subject.subject_name}</span>
+                          <span className="text-[10px] tabular-nums text-muted-foreground">{subject.quiz_count}</span>
+                        </SidebarMenuSubButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8} className="block max-w-64">
+                        <p className="font-medium">{subject.subject_name}</p>
+                        <p className="mt-1 text-background/80">
+                          {subject.description?.trim() || 'No description provided'}
+                        </p>
+                        <p className="mt-1">{subject.quiz_count} {subject.quiz_count === 1 ? 'quiz' : 'quizzes'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="ml-0.5 opacity-100 sm:opacity-0 sm:group-hover/subject:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                          aria-label={`Actions for ${subject.subject_name}`}
+                        >
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="start">
+                        <DropdownMenuItem onSelect={() => openEditSubject(subject)}>
+                          <Edit3 /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => openDeleteSubject(subject)}>
+                          <Trash2 /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </SidebarMenuSubItem>
+                ))
+              )}
+
+              {subjectsQuery.hasNextPage && (
+                <SidebarMenuSubItem>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    className="mt-1 w-full justify-center"
+                    disabled={subjectsQuery.isFetchingNextPage}
+                    onClick={() => void subjectsQuery.fetchNextPage()}
+                  >
+                    {subjectsQuery.isFetchingNextPage && <Loader2 className="animate-spin" />}
+                    {subjectsQuery.isFetchingNextPage ? 'Loading…' : 'View More'}
+                  </Button>
+                </SidebarMenuSubItem>
+              )}
             </CollapsibleNav>
           </SidebarMenu>
         </SidebarGroup>
@@ -271,6 +496,49 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
       </SidebarFooter>
 
       <SidebarRail />
+
+      <SubjectFormDialog
+        open={subjectDialogOpen}
+        subject={editingSubject}
+        isSubmitting={isSavingSubject}
+        error={subjectError}
+        onOpenChange={(open) => {
+          if (!isSavingSubject) setSubjectDialogOpen(open)
+        }}
+        onSubmit={submitSubject}
+      />
+
+      <Dialog open={Boolean(deletingSubject)} onOpenChange={(open) => !open && setDeletingSubject(null)}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Delete subject?</DialogTitle>
+            <DialogDescription>
+              “{deletingSubject?.subject_name}” will be removed. Its quizzes will become unassigned.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteSubjectMutation.isError && (
+            <p className="text-xs text-destructive">The subject could not be deleted. Please try again.</p>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleteSubjectMutation.isPending}
+              onClick={() => setDeletingSubject(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteSubjectMutation.isPending}
+              onClick={confirmDeleteSubject}
+            >
+              {deleteSubjectMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   )
 }

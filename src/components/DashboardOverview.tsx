@@ -48,17 +48,17 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard label="Total Classes" value="12" icon={School} trend={8} trendLabel="vs last month" colorClass="text-indigo-600 dark:text-indigo-400" bgClass="bg-indigo-50 dark:bg-indigo-950" />
-        <StatCard label="Total Students" value="347" icon={Users} trend={12} trendLabel="vs last month" colorClass="text-blue-600 dark:text-blue-400" bgClass="bg-blue-50 dark:bg-blue-950" />
+        <StatCard label="Total Students" value="347" icon={Users} trend={12} trendLabel="vs last month" colorClass="text-blue-600 dark:text-blue-400" bgClass="bg-blue-50 dark:bg-zinc-800" />
         <StatCard label="Active Assignments" value="8" icon={ClipboardList} trend={-2} trendLabel="vs last week" colorClass="text-amber-600 dark:text-amber-400" bgClass="bg-amber-50 dark:bg-amber-950" />
         <StatCard label="Published Quizzes" value="24" icon={BookOpen} trend={4} trendLabel="vs last month" colorClass="text-emerald-600 dark:text-emerald-400" bgClass="bg-emerald-50 dark:bg-emerald-950" />
         <StatCard label="Submission Rate" value="78%" icon={TrendingUp} trend={3} trendLabel="vs last week" colorClass="text-green-600 dark:text-green-400" bgClass="bg-green-50 dark:bg-green-950" />
-        <StatCard label="Average Score" value="82.4" icon={Award} trend={1} trendLabel="vs last month" colorClass="text-violet-600 dark:text-violet-400" bgClass="bg-violet-50 dark:bg-violet-950" />
+        <StatCard label="Average Score" value="82.4" icon={Award} trend={1} trendLabel="vs last month" colorClass="text-violet-600 dark:text-indigo-400" bgClass="bg-violet-50 dark:bg-zinc-800" />
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Classes */}
-        <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5">
+        <div className="lg:col-span-2 bg-card rounded-md border border-border p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-foreground">Recent Classes</h2>
             <Button variant="ghost" size="sm" onClick={() => onNavigate('classes')} className="text-primary gap-1 text-xs h-7">
@@ -94,7 +94,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-md border border-border p-5">
           <h2 className="text-sm font-semibold text-foreground mb-4">Recent Activity</h2>
           <div className="flex flex-col gap-3">
             {recentActivity.map(item => (
@@ -115,7 +115,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
       </div>
 
       {/* Upcoming Deadlines */}
-      <div className="bg-card rounded-xl border border-border p-5">
+      <div className="bg-card rounded-md border border-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-foreground">Upcoming Deadlines</h2>
           <Button variant="ghost" size="sm" onClick={() => onNavigate('assignments-active')} className="text-primary gap-1 text-xs h-7">

@@ -14,7 +14,12 @@ import { QuestionBankView } from './pages/teacher/QuestionBankView'
 import { AssignmentsView } from './pages/teacher/AssignmentsView'
 import { AnalyticsView } from './pages/teacher/AnalyticsView'
 import { ProfileView } from './pages/teacher/ProfileView'
+import { StudentDetailView } from './pages/teacher/StudentDetailView'
+import { AttemptDetailView } from './pages/teacher/AttemptDetailView'
+import { AssignmentAttemptsView } from './pages/teacher/AssignmentAttemptsView'
 import type { DashboardSection } from './components/app-sidebar'
+import Login from './layouts/login'
+import Register from './layouts/register'
 
 const queryClient = new QueryClient()
 
@@ -26,7 +31,6 @@ function withTeacherOutlet<P extends { onNavigate: (section: DashboardSection) =
 }
 
 const DashboardRoute = withTeacherOutlet(DashboardOverview)
-const ClassesRoute = withTeacherOutlet(ClassesView)
 const ClassDetailRoute = withTeacherOutlet(ClassDetailView)
 const SubjectsRoute = withTeacherOutlet(SubjectsView)
 const SubjectDetailRoute = withTeacherOutlet(SubjectDetailView)
@@ -42,13 +46,20 @@ function App() {
       <TooltipProvider>
         <BrowserRouter>
           <Routes>
-            <Route path='/' element={<Navigate to='/teacher/dashboard' replace />} />
+            <Route path='/' element={<Navigate to='/login' replace />} />
+            <Route path='/login' element={<Login />} />
+            <Route path='/register' element={<Register />} />
             <Route path='/teacher' element={<TeacherDashboard />}>
               <Route index element={<DashboardRoute />} />
               <Route path='dashboard' element={<DashboardRoute />} />
-              <Route path='classes' element={<ClassesRoute />} />
-              <Route path='class-detail' element={<ClassDetailRoute />} />
+              <Route path='classes' element={<ClassesView />} />
+              <Route path='classes/:classId' element={<ClassDetailRoute />} />
+              <Route path='class-detail' element={<Navigate to='../classes/1' replace />} />
+              <Route path='students/:id' element={<StudentDetailView />} />
+              <Route path='attempts/:id' element={<AttemptDetailView />} />
+              <Route path='assignments/:assignmentId/attempts' element={<AssignmentAttemptsView />} />
               <Route path='subjects' element={<SubjectsRoute />} />
+              <Route path='subjects/:subjectId' element={<SubjectDetailRoute />} />
               <Route path='subject-detail' element={<SubjectDetailRoute />} />
               <Route path='create-quiz' element={<CreateQuizRoute />} />
               <Route path='question-bank' element={<QuestionBankRoute />} />
@@ -58,7 +69,7 @@ function App() {
               <Route path='analytics' element={<AnalyticsRoute />} />
               <Route path='profile' element={<ProfileRoute />} />
             </Route>
-            <Route path='*' element={<Navigate to='/teacher/dashboard' replace />} />
+            <Route path='*' element={<Navigate to='/login' replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

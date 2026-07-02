@@ -46,7 +46,7 @@ export function SubjectsView({ onNavigate }: SubjectsViewProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map(sub => (
-          <div key={sub.id} className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group">
+          <div key={sub.id} className="bg-card rounded-md border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group">
             <div className={`h-2 ${sub.color}`} />
             <div className="p-5">
               <div className="flex items-center gap-3 mb-4">

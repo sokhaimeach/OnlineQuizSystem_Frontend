@@ -71,7 +71,7 @@ export function TopNavBar({ breadcrumb }: TopNavBarProps) {
   const unreadCount = notifications.filter(n => n.unread).length
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background/80 backdrop-blur-sm border-b border-border px-4 transition-all">
+    <header className="sticky top-0 z-40 flex h-17.5 shrink-0 items-center gap-2 bg-card backdrop-blur-sm border-b border-border px-4 transition-all">
       {/* Left: Trigger + Breadcrumb */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <SidebarTrigger className="-ml-1 h-8 w-8 shrink-0" />

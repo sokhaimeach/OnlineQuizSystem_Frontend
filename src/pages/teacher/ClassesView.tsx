@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { EmptyState } from '@/components/EmptyState'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import type { DashboardSection } from '@/components/app-sidebar'
+import { useNavigate } from 'react-router-dom'
 
 const allClasses = [
   { id: 1, name: 'Class 10-A', subject: 'Science', students: 32, assignments: 3, avgScore: 84, lastActivity: '2 hrs ago', color: 'bg-indigo-500', initials: '10A', status: 'active' as const },
@@ -16,12 +16,9 @@ const allClasses = [
   { id: 6, name: 'Class 7-C', subject: 'Biology', students: 35, assignments: 4, avgScore: 72, lastActivity: '5 hrs ago', color: 'bg-cyan-500', initials: '7C', status: 'active' as const },
 ]
 
-interface ClassesViewProps {
-  onNavigate: (section: DashboardSection) => void
-}
-
-export function ClassesView({ onNavigate }: ClassesViewProps) {
+export function ClassesView() {
   const [search, setSearch] = useState('')
+  const navigate = useNavigate()
 
   const filtered = allClasses.filter(
     c =>
@@ -57,7 +54,7 @@ export function ClassesView({ onNavigate }: ClassesViewProps) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(cls => (
-            <div key={cls.id} className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group">
+            <div key={cls.id} className="bg-card rounded-md border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group">
               {/* Color Header */}
               <div className={`h-2 ${cls.color}`} />
               <div className="p-5">
@@ -95,7 +92,7 @@ export function ClassesView({ onNavigate }: ClassesViewProps) {
                     <ClipboardList className="h-3.5 w-3.5" />
                     Last active {cls.lastActivity}
                   </p>
-                  <Button size="sm" variant="ghost" onClick={() => onNavigate('class-detail')} className="gap-1 text-xs h-7 text-primary hover:text-primary">
+                  <Button size="sm" variant="ghost" onClick={() => navigate(`/teacher/classes/${cls.id}`)} className="gap-1 text-xs h-7 text-primary hover:text-primary">
                     Open <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>

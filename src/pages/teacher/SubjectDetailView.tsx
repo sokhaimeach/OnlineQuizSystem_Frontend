@@ -1,6 +1,6 @@
 import {
   BookOpen, Library, BarChart3, ArrowLeft, Plus,
-  Eye, Edit, Trash2, FileQuestion, CheckSquare, AlignLeft,
+  Eye, Edit, Trash2, FileQuestion, CheckSquare, AlignLeft, Loader2,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,11 @@ import { Progress } from '@/components/ui/progress'
 import { StatusBadge } from '@/components/StatusBadge'
 import { PageHeader } from '@/components/PageHeader'
 import type { DashboardSection } from '@/components/app-sidebar'
+import { useParams } from 'react-router-dom'
+import { useGetAllSubjects } from '@/hooks/api/useSubject'
+import { useGetQuizzesForSubject } from '@/hooks/api/useQuiz'
 
-const quizzes = [
+const demoQuizzes = [
   { id: 1, title: 'Chapter 1: Algebra Basics', questions: 15, avgScore: 82, status: 'published' as const, attempts: 28 },
   { id: 2, title: 'Chapter 2: Quadratic Equations', questions: 12, avgScore: 76, status: 'published' as const, attempts: 25 },
   { id: 3, title: 'Chapter 3: Geometry', questions: 20, avgScore: 0, status: 'draft' as const, attempts: 0 },
@@ -42,6 +45,24 @@ interface SubjectDetailViewProps {
 }
 
 export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
+  const { subjectId } = useParams()
+  const subjectsQuery = useGetAllSubjects()
+  const quizzesQuery = useGetQuizzesForSubject(subjectId)
+  const selectedSubject = subjectsQuery.data?.pages
+    .flatMap(page => page.data.subjects)
+    .find(subject => subject.id === subjectId)
+  const isUnassigned = subjectId === 'unassigned'
+  const subjectTitle = isUnassigned
+    ? 'Unassigned Quiz'
+    : selectedSubject?.subject_name ?? 'Subject quizzes'
+  const subjectDescription = isUnassigned
+    ? 'Quizzes that do not belong to a subject'
+    : selectedSubject
+      ? `${selectedSubject.quiz_count} ${selectedSubject.quiz_count === 1 ? 'quiz' : 'quizzes'}`
+      : 'Quizzes for the selected subject'
+  const subjectQuizzes = (quizzesQuery.data?.pages.flatMap(page => page.data) ?? [])
+    .filter(quiz => !isUnassigned || quiz.subject_id === null)
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -49,8 +70,8 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
           <ArrowLeft className="h-4 w-4" /> All Subjects
         </Button>
         <PageHeader
-          title="Mathematics"
-          description="3 classes · 8 quizzes published"
+          title={subjectTitle}
+          description={subjectDescription}
           icon={BookOpen}
           action={{ label: 'New Quiz', icon: Plus, onClick: () => onNavigate('create-quiz') }}
         />
@@ -71,35 +92,50 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
 
         {/* Quizzes Tab */}
         <TabsContent value="quizzes" className="mt-4">
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="border-y border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
                     <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Quiz Title</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground hidden sm:table-cell">Questions</th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground hidden sm:table-cell">Attempts</th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Avg Score</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground hidden sm:table-cell">Assignments</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Total Points</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {quizzes.map((q, idx) => (
+                  {quizzesQuery.isLoading && Array.from({ length: 3 }).map((_, index) => (
+                    <tr key={index} className="border-b border-border">
+                      <td colSpan={6} className="px-4 py-4 text-center text-xs text-muted-foreground">
+                        Loading quizzes…
+                      </td>
+                    </tr>
+                  ))}
+                  {quizzesQuery.isError && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-sm text-destructive">
+                        The quizzes could not be loaded.
+                      </td>
+                    </tr>
+                  )}
+                  {!quizzesQuery.isLoading && !quizzesQuery.isError && subjectQuizzes.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        No quizzes found for this subject.
+                      </td>
+                    </tr>
+                  )}
+                  {subjectQuizzes.map((q, idx) => (
                     <tr key={q.id} className={`border-b border-border hover:bg-muted/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}>
                       <td className="px-4 py-3 font-medium text-foreground">{q.title}</td>
-                      <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">{q.questions}</td>
-                      <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">{q.attempts}</td>
-                      <td className="px-4 py-3 text-center hidden md:table-cell">
-                        {q.avgScore > 0 ? (
-                          <span className={`font-semibold ${q.avgScore >= 80 ? 'text-emerald-600 dark:text-emerald-400' : q.avgScore >= 70 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {q.avgScore}%
-                          </span>
-                        ) : <span className="text-muted-foreground">—</span>}
-                      </td>
+                      <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">{q.question_count}</td>
+                      <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">{q.assignment_count ?? '—'}</td>
+                      <td className="px-4 py-3 text-center text-muted-foreground hidden md:table-cell">{q.total_score}</td>
                       <td className="px-4 py-3 text-center">
-                        <StatusBadge variant={q.status === 'published' ? 'success' : q.status === 'draft' ? 'muted' : 'warning'} dot>
-                          {q.status.charAt(0).toUpperCase() + q.status.slice(1)}
+                        <StatusBadge variant={q.is_public ? 'success' : 'muted'} dot>
+                          {q.is_public ? 'Published' : 'Draft'}
                         </StatusBadge>
                       </td>
                       <td className="px-4 py-3">
@@ -114,6 +150,20 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
                 </tbody>
               </table>
             </div>
+            {quizzesQuery.hasNextPage && (
+              <div className="flex justify-center border-t border-border p-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={quizzesQuery.isFetchingNextPage}
+                  onClick={() => void quizzesQuery.fetchNextPage()}
+                >
+                  {quizzesQuery.isFetchingNextPage && <Loader2 className="animate-spin" />}
+                  {quizzesQuery.isFetchingNextPage ? 'Loading…' : 'View More'}
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -123,7 +173,7 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
             <p className="text-sm text-muted-foreground">{questions.length} questions in bank</p>
             <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Add Question</Button>
           </div>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="border-y border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -170,7 +220,7 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-card rounded-xl border border-border p-5">
+            <div className="bg-card rounded-md border border-border p-5">
               <h3 className="text-sm font-semibold text-foreground mb-4">Performance by Topic</h3>
               <div className="flex flex-col gap-4">
                 {topicPerformance.map(t => (
@@ -190,10 +240,10 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
               </div>
             </div>
 
-            <div className="bg-card rounded-xl border border-border p-5">
+            <div className="bg-card rounded-md border border-border p-5">
               <h3 className="text-sm font-semibold text-foreground mb-4">Quiz Performance Overview</h3>
               <div className="flex flex-col gap-3">
-                {quizzes.filter(q => q.avgScore > 0).map(q => (
+                {demoQuizzes.filter(q => q.avgScore > 0).map(q => (
                   <div key={q.id} className="flex items-center gap-3">
                     <span className="text-xs text-foreground flex-1 min-w-0 truncate">{q.title}</span>
                     <Progress value={q.avgScore} className="w-20 h-1.5 shrink-0" />

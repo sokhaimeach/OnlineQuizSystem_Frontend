@@ -25,7 +25,7 @@ export function StatCard({
   const trendNegative = trend !== undefined && trend < 0
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
+    <div className="bg-card rounded-md border border-border p-5 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between">
         <div className={cn('p-2.5 rounded-lg', bgClass)}>
           <Icon className={cn('h-5 w-5', colorClass)} />
@@ -33,7 +33,7 @@ export function StatCard({
         {trend !== undefined && (
           <div
             className={cn(
-              'flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full',
+              'flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-sm',
               trendPositive && 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950',
               trendNegative && 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950',
               !trendPositive && !trendNegative && 'text-muted-foreground bg-muted',

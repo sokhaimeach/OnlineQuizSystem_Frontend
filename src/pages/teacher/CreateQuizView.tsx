@@ -1,71 +1,197 @@
 import { useState } from 'react'
 import {
-  PlusCircle, Clock, FileQuestion, ChevronRight, ChevronLeft,
-  Trash2, GripVertical, CheckSquare, AlignLeft, Check,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FileQuestion,
+  Globe2,
+  LockKeyhole,
+  PlusCircle,
 } from 'lucide-react'
+import type { DashboardSection } from '@/components/app-sidebar'
+import { SearchableSelectInput } from '@/components/SearchableSelectInput'
+import { AddQuestionCard } from '@/components/teacher/quiz/AddQuestionCard'
 import { PageHeader } from '@/components/PageHeader'
-import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import type { CreateQuiz, QuestionWithOptions } from '@/models/quiz.interface'
+import type { Subject } from '@/models/subject.interface'
+import { createQuiz } from '@/services/teacher/quiz.service'
+// import { getSubjects } from '@/services/teacher/subject.service'
+import { useGetSubjectOptions } from '@/hooks/api/useSubject'
 
 const steps = ['Details', 'Settings', 'Questions', 'Review']
 
-const questionTypes = [
-  { id: 'mcq', label: 'Multiple Choice', icon: FileQuestion, description: 'Students choose from 4 options' },
-  { id: 'tf', label: 'True / False', icon: CheckSquare, description: 'Simple binary answer' },
-  { id: 'short', label: 'Short Answer', icon: AlignLeft, description: 'Open-ended text response' },
-]
+const emptyQuestion = (): QuestionWithOptions => ({
+  question_text: '',
+  question_type: 'SINGLE_CHOICE',
+  score: 1,
+  options: Array.from({ length: 4 }, () => ({
+    option_text: '',
+    is_correct: false,
+  })),
+})
 
-const sampleQuestions = [
-  { id: 1, text: 'What is the quadratic formula?', type: 'MCQ', points: 2 },
-  { id: 2, text: 'The speed of light is 3×10⁸ m/s.', type: 'T/F', points: 1 },
-  { id: 3, text: 'Explain Newton\'s second law of motion.', type: 'Short Answer', points: 5 },
-]
+const initialQuiz: CreateQuiz = {
+  title: '',
+  description: '',
+  duration_minutes: 5,
+  is_public: false,
+  passing_score: 70,
+  show_result_immediately: true,
+  show_correct_answers: true,
+  randomize_questions: true,
+  questions: [emptyQuestion()],
+}
 
-export function CreateQuizView() {
+interface CreateQuizViewProps {
+  onNavigate: (section: DashboardSection) => void
+}
+
+export function CreateQuizView({ onNavigate }: CreateQuizViewProps) {
+
+  const {data: subjects = [], isLoading} = useGetSubjectOptions()
+
   const [step, setStep] = useState(0)
-  const [quizTitle, setQuizTitle] = useState('')
-  const [quizDesc, setQuizDesc] = useState('')
-  const [timeLimit, setTimeLimit] = useState('30')
-  const [selectedType, setSelectedType] = useState('mcq')
+  const [quiz, setQuiz] = useState<CreateQuiz>(initialQuiz)
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const stepProgress = ((step + 1) / steps.length) * 100
+  const totalPoints = quiz.questions.reduce((total, question) => total + question.score, 0)
+  const selectedSubject = subjects.find((subject: any) => subject.id === quiz.subject_id)
+
+  const updateQuiz = <Key extends keyof CreateQuiz>(key: Key, value: CreateQuiz[Key]) => {
+    setQuiz(current => ({ ...current, [key]: value }))
+    setError('')
+  }
+
+  const updateQuestion = (index: number, question: QuestionWithOptions) => {
+    updateQuiz(
+      'questions',
+      quiz.questions.map((item, questionIndex) => questionIndex === index ? question : item),
+    )
+  }
+
+  const validateStep = (stepIndex: number) => {
+    if (stepIndex === 0) {
+      if (!quiz.title.trim()) return 'Quiz title is required.'
+    }
+
+    if (stepIndex === 1) {
+      if (quiz.duration_minutes < 1) return 'Duration must be at least 1 minute.'
+      if (quiz.passing_score < 0 || quiz.passing_score > 100) {
+        return 'Passing score must be between 0 and 100.'
+      }
+    }
+
+    if (stepIndex === 2) {
+      for (let index = 0; index < quiz.questions.length; index += 1) {
+        const question = quiz.questions[index]
+        const label = `Question ${index + 1}`
+
+        if (!question.question_text.trim()) return `${label} needs question text.`
+        if (question.score < 1) return `${label} must be worth at least 1 point.`
+        if (question.options.length < 2) return `${label} needs at least two options.`
+        if (question.options.some(option => !option.option_text.trim())) {
+          return `${label} has an empty option.`
+        }
+
+        const correctAnswers = question.options.filter(option => option.is_correct).length
+        if (correctAnswers === 0) return `${label} needs a correct answer.`
+        if (question.question_type === 'SINGLE_CHOICE' && correctAnswers !== 1) {
+          return `${label} must have exactly one correct answer.`
+        }
+      }
+    }
+
+    return ''
+  }
+
+  const goNext = () => {
+    const validationError = validateStep(step)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setError('')
+    setStep(current => Math.min(steps.length - 1, current + 1))
+  }
+
+  const publishQuiz = async () => {
+    const validationError = [0, 1, 2]
+      .map(validateStep)
+      .find(message => message)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    try {
+      await createQuiz(quiz)
+      onNavigate('dashboard')
+    } catch {
+      setError('The quiz could not be published. Please check your connection and try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader
         title="Create Quiz"
         description="Build a new quiz for your students"
         icon={PlusCircle}
       />
 
-      {/* Step Indicator */}
-      <div className="bg-card rounded-xl border border-border p-4">
-        <div className="flex items-center justify-between mb-3">
-          {steps.map((s, idx) => (
-            <div key={s} className="flex items-center flex-1">
+      <div className="rounded-md border border-border bg-card p-4">
+        <div className="mb-3 flex items-center justify-between">
+          {steps.map((label, index) => (
+            <div key={label} className="flex flex-1 items-center">
               <div className="flex flex-col items-center gap-1">
                 <button
-                  onClick={() => idx < step + 1 && setStep(idx)}
+                  type="button"
+                  onClick={() => {
+                    if (index <= step) {
+                      setStep(index)
+                      setError('')
+                    }
+                  }}
                   className={cn(
-                    'h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
-                    idx < step
-                      ? 'bg-primary text-primary-foreground cursor-pointer'
-                      : idx === step
-                      ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-                      : 'bg-muted text-muted-foreground cursor-default',
+                    'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-all',
+                    index < step
+                      ? 'cursor-pointer bg-primary text-primary-foreground'
+                      : index === step
+                        ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
+                        : 'cursor-default bg-muted text-muted-foreground',
                   )}
                 >
-                  {idx < step ? <Check className="h-4 w-4" /> : idx + 1}
+                  {index < step ? <Check className="h-4 w-4" /> : index + 1}
                 </button>
-                <span className={cn('text-[11px] font-medium hidden sm:block', idx === step ? 'text-primary' : idx < step ? 'text-foreground' : 'text-muted-foreground')}>
-                  {s}
+                <span className={cn(
+                  'hidden text-[11px] font-medium sm:block',
+                  index === step
+                    ? 'text-primary'
+                    : index < step ? 'text-foreground' : 'text-muted-foreground',
+                )}>
+                  {label}
                 </span>
               </div>
-              {idx < steps.length - 1 && (
-                <div className={cn('flex-1 h-px mx-2 mt-[-12px] sm:mt-[-24px]', idx < step ? 'bg-primary' : 'bg-border')} />
+              {index < steps.length - 1 && (
+                <div className={cn(
+                  'mx-2 mt-[-12px] h-px flex-1 sm:mt-[-24px]',
+                  index < step ? 'bg-primary' : 'bg-border',
+                )} />
               )}
             </div>
           ))}
@@ -73,177 +199,261 @@ export function CreateQuizView() {
         <Progress value={stepProgress} className="h-1" />
       </div>
 
-      {/* Step Content */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        {/* Step 0 — Details */}
+      <div className="rounded-md border border-border bg-card p-6">
         {step === 0 && (
           <div className="flex flex-col gap-4">
             <h2 className="text-base font-semibold text-foreground">Quiz Details</h2>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Quiz Title <span className="text-destructive">*</span></label>
+              <label className="text-sm font-medium text-foreground">Subject</label>
+              <SearchableSelectInput
+                options={subjects
+                  .filter((subject): subject is Subject & { id: string } => Boolean(subject.id))
+                  .map(subject => ({
+                    value: subject.id,
+                    label: subject.subject_name
+                  }))}
+                value={quiz.subject_id}
+                onValueChange={value => updateQuiz('subject_id', value)}
+                disabled={isLoading}
+                placeholder={isLoading ? 'Loading subjects…' : 'Write to search subjects'}
+                emptyMessage="No similar subjects found."
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional. Search by name; the selected subject ID is stored in the payload.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">
+                Quiz Title <span className="text-destructive">*</span>
+              </label>
               <Input
-                placeholder="e.g. Chapter 5: Newton's Laws"
-                value={quizTitle}
-                onChange={e => setQuizTitle(e.target.value)}
+                value={quiz.title}
+                onChange={event => updateQuiz('title', event.target.value)}
+                placeholder="e.g. Introduction to Operations"
               />
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Description</label>
-              <textarea
+              <Textarea
                 rows={3}
+                value={quiz.description}
+                onChange={event => updateQuiz('description', event.target.value)}
                 placeholder="What will students be tested on?"
-                value={quizDesc}
-                onChange={e => setQuizDesc(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                className="resize-none"
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Subject</label>
-                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option>Mathematics</option>
-                  <option>Physics</option>
-                  <option>Chemistry</option>
-                  <option>Science</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Class</label>
-                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option>Class 10-A</option>
-                  <option>Class 9-B</option>
-                  <option>Class 11-C</option>
-                  <option>Class 8-A</option>
-                </select>
-              </div>
             </div>
           </div>
         )}
 
-        {/* Step 1 — Settings */}
         {step === 1 && (
           <div className="flex flex-col gap-4">
             <h2 className="text-base font-semibold text-foreground">Quiz Settings</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Clock className="h-4 w-4 text-muted-foreground" /> Time Limit (minutes)
+                <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Time Limit (minutes)
                 </label>
                 <Input
                   type="number"
-                  value={timeLimit}
-                  onChange={e => setTimeLimit(e.target.value)}
-                  min={5}
-                  max={180}
+                  min={1}
+                  value={quiz.duration_minutes}
+                  onChange={event => updateQuiz(
+                    'duration_minutes',
+                    Math.max(1, Number(event.target.value) || 1),
+                  )}
                 />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-foreground">Passing Score (%)</label>
-                <Input type="number" defaultValue="60" min={0} max={100} />
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={quiz.passing_score}
+                  onChange={event => updateQuiz('passing_score', Number(event.target.value) || 0)}
+                />
               </div>
             </div>
-            {[
-              { label: 'Shuffle Questions', desc: 'Randomize question order for each student', defaultChecked: true },
-              { label: 'Shuffle Answers', desc: 'Randomize answer choices for MCQ questions', defaultChecked: true },
-              { label: 'Show Results Immediately', desc: 'Students see their score right after submitting', defaultChecked: false },
-              { label: 'Allow Multiple Attempts', desc: 'Students can retake the quiz', defaultChecked: false },
-            ].map(opt => (
-              <label key={opt.label} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 cursor-pointer transition-colors">
-                <input type="checkbox" defaultChecked={opt.defaultChecked} className="mt-0.5 accent-indigo-600" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
-                </div>
+
+            {([
+              ['show_result_immediately', 'Show results immediately', 'Show the score as soon as a student submits.'],
+              ['show_correct_answers', 'Show correct answers', 'Reveal correct answers with the result.'],
+              ['randomize_questions', 'Randomize questions', 'Use a different question order for each attempt.'],
+            ] as const).map(([key, label, description]) => (
+              <label
+                key={key}
+                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/30"
+              >
+                <input
+                  type="checkbox"
+                  checked={quiz[key]}
+                  onChange={event => updateQuiz(key, event.target.checked)}
+                  className="mt-0.5 accent-primary"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-foreground">{label}</span>
+                  <span className="block text-xs text-muted-foreground">{description}</span>
+                </span>
               </label>
             ))}
           </div>
         )}
 
-        {/* Step 2 — Questions */}
         {step === 2 && (
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">Questions ({sampleQuestions.length})</h2>
-              <div className="flex gap-2">
-                {questionTypes.map(t => (
-                  <Button
-                    key={t.id}
-                    size="sm"
-                    variant={selectedType === t.id ? 'default' : 'outline'}
-                    onClick={() => setSelectedType(t.id)}
-                    className="gap-1.5 text-xs"
-                  >
-                    <t.icon className="h-3.5 w-3.5" />{t.label}
-                  </Button>
-                ))}
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  Questions ({quiz.questions.length})
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Add single-choice or multiple-choice questions.
+                </p>
               </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => updateQuiz('questions', [...quiz.questions, emptyQuestion()])}
+                className="gap-1.5"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Add question
+              </Button>
             </div>
 
-            {/* Questions List */}
-            <div className="flex flex-col gap-2">
-              {sampleQuestions.map((q, idx) => (
-                <div key={q.id} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors group">
-                  <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab" />
-                  <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}.</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate">{q.text}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <StatusBadge variant="muted" className="text-[10px]">{q.type}</StatusBadge>
-                      <span className="text-[11px] text-muted-foreground">{q.points} pts</span>
-                    </div>
-                  </div>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+            <div className="flex flex-col gap-4">
+              {quiz.questions.map((question, index) => (
+                <AddQuestionCard
+                  key={index}
+                  index={index}
+                  question={question}
+                  canDelete={quiz.questions.length > 1}
+                  onChange={value => updateQuestion(index, value)}
+                  onDelete={() => updateQuiz(
+                    'questions',
+                    quiz.questions.filter((_, questionIndex) => questionIndex !== index),
+                  )}
+                />
               ))}
             </div>
-
-            {/* Add from Bank */}
-            <button className="flex items-center justify-center gap-2 w-full py-3 rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground hover:text-primary">
-              <PlusCircle className="h-4 w-4" /> Add from Question Bank
-            </button>
           </div>
         )}
 
-        {/* Step 3 — Review */}
         {step === 3 && (
           <div className="flex flex-col gap-4">
             <h2 className="text-base font-semibold text-foreground">Review & Publish</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {[
-                { label: 'Title', value: quizTitle || 'Chapter 5: Newton\'s Laws' },
-                { label: 'Subject', value: 'Mathematics' },
-                { label: 'Class', value: 'Class 10-A' },
-                { label: 'Time Limit', value: `${timeLimit} minutes` },
-                { label: 'Questions', value: `${sampleQuestions.length} questions` },
-                { label: 'Total Points', value: `${sampleQuestions.reduce((a, q) => a + q.points, 0)} pts` },
+                { label: 'Title', value: quiz.title },
+                { label: 'Subject', value: selectedSubject?.subject_name ?? 'No subject' },
+                { label: 'Time Limit', value: `${quiz.duration_minutes} minutes` },
+                { label: 'Passing Score', value: `${quiz.passing_score}%` },
+                { label: 'Questions', value: `${quiz.questions.length} questions` },
+                { label: 'Total Points', value: `${totalPoints} points` },
               ].map(item => (
-                <div key={item.label} className="flex flex-col gap-0.5 p-3 bg-muted/30 rounded-lg">
+                <div key={item.label} className="flex flex-col gap-0.5 rounded-lg bg-muted/30 p-3">
                   <span className="text-xs text-muted-foreground">{item.label}</span>
-                  <span className="text-sm font-medium text-foreground">{item.value}</span>
+                  <span className="truncate text-sm font-medium text-foreground">{item.value}</span>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1">Save as Draft</Button>
-              <Button className="flex-1 bg-primary hover:bg-primary/90">Publish Quiz</Button>
+
+            <div className="flex flex-col gap-2">
+              <div>
+                <p className="text-sm font-medium text-foreground">Quiz visibility</p>
+                <p className="text-xs text-muted-foreground">
+                  This choice is submitted as the boolean <code>is_public</code> value.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => updateQuiz('is_public', false)}
+                  className={cn(
+                    'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
+                    !quiz.is_public
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:bg-muted/30',
+                  )}
+                >
+                  <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    <span className="block text-sm font-medium">Draft</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Keep the quiz private.
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateQuiz('is_public', true)}
+                  className={cn(
+                    'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
+                    quiz.is_public
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:bg-muted/30',
+                  )}
+                >
+                  <Globe2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    <span className="block text-sm font-medium">Public</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Publish for students to access.
+                    </span>
+                  </span>
+                </button>
+              </div>
             </div>
+
+            <div className="rounded-lg border border-border p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <FileQuestion className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Questions</span>
+              </div>
+              <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-muted-foreground">
+                {quiz.questions.map((question, index) => (
+                  <li key={index}>{question.question_text}</li>
+                ))}
+              </ol>
+            </div>
+
+            <Button onClick={publishQuiz} disabled={isSubmitting} className="w-full">
+              {isSubmitting
+                ? 'Saving…'
+                : quiz.is_public ? 'Publish Quiz' : 'Save as Draft'}
+            </Button>
           </div>
+        )}
+
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-destructive">
+            {error}
+          </p>
         )}
       </div>
 
-      {/* Navigation */}
-      {step < 3 && (
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0} className="gap-1.5">
-            <ChevronLeft className="h-4 w-4" /> Previous
+      <div className="flex justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setStep(current => Math.max(0, current - 1))
+            setError('')
+          }}
+          disabled={step === 0}
+          className="gap-1.5"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </Button>
+        {step < steps.length - 1 && (
+          <Button type="button" onClick={goNext} className="gap-1.5">
+            Next
+            <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button onClick={() => setStep(s => Math.min(steps.length - 1, s + 1))} className="gap-1.5">
-            Next <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -46,14 +46,14 @@ export function AnalyticsView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Overall Avg Score" value="82.4%" icon={Award} trend={2} colorClass="text-emerald-600 dark:text-emerald-400" bgClass="bg-emerald-50 dark:bg-emerald-950" />
         <StatCard label="Total Students" value="347" icon={Users} trend={12} colorClass="text-indigo-600 dark:text-indigo-400" bgClass="bg-indigo-50 dark:bg-indigo-950" />
-        <StatCard label="Completion Rate" value="78%" icon={TrendingUp} trend={3} colorClass="text-blue-600 dark:text-blue-400" bgClass="bg-blue-50 dark:bg-blue-950" />
-        <StatCard label="Quizzes Graded" value="186" icon={BookOpen} trend={8} colorClass="text-violet-600 dark:text-violet-400" bgClass="bg-violet-50 dark:bg-violet-950" />
+        <StatCard label="Completion Rate" value="78%" icon={TrendingUp} trend={3} colorClass="text-blue-600 dark:text-blue-400" bgClass="bg-blue-50 dark:bg-zinc-800" />
+        <StatCard label="Quizzes Graded" value="186" icon={BookOpen} trend={8} colorClass="text-violet-600 dark:text-indigo-400" bgClass="bg-violet-50 dark:bg-zinc-800" />
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Submissions */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-md border border-border p-5">
           <h3 className="text-sm font-semibold text-foreground mb-1">Weekly Submissions</h3>
           <p className="text-xs text-muted-foreground mb-4">Total quiz submissions per day this week</p>
           <div className="flex items-end gap-2 h-32">
@@ -72,7 +72,7 @@ export function AnalyticsView() {
         </div>
 
         {/* Class Performance */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-md border border-border p-5">
           <h3 className="text-sm font-semibold text-foreground mb-1">Class Performance</h3>
           <p className="text-xs text-muted-foreground mb-4">Average score per class</p>
           <div className="flex flex-col gap-3">
@@ -93,7 +93,7 @@ export function AnalyticsView() {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performers */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-md border border-border p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Top Performers</h3>
           <div className="flex flex-col gap-3">
             {topPerformers.map((student, idx) => (
@@ -118,7 +118,7 @@ export function AnalyticsView() {
         </div>
 
         {/* Quiz Completion Rates */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-md border border-border p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Quiz Completion Rates</h3>
           <div className="flex flex-col gap-4">
             {quizCompletion.map(quiz => (
