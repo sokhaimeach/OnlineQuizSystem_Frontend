@@ -118,7 +118,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
       <div className="bg-card rounded-md border border-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-foreground">Upcoming Deadlines</h2>
-          <Button variant="ghost" size="sm" onClick={() => onNavigate('assignments-active')} className="text-primary gap-1 text-xs h-7">
+          <Button variant="ghost" size="sm" onClick={() => onNavigate('classes')} className="text-primary gap-1 text-xs h-7">
             View all <ArrowRight className="h-3 w-3" />
           </Button>
         </div>

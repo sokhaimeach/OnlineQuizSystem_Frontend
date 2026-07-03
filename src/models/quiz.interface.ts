@@ -11,11 +11,22 @@ export interface Quiz {
     show_result_immediately: boolean;
     show_correct_answers: boolean;
     randomize_questions: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface QuizListItem extends Quiz {
     question_count: number | string;
     assignment_count?: number | string;
+}
+
+export interface QuizOption {
+    id: string;
+    title: string;
+    description?: string;
+    question_count?: number | string;
+    duration_minutes?: number;
+    difficulty_level?: string;
 }
 
 export interface QuizzesPage {
@@ -34,6 +45,8 @@ export interface Question {
     question_text: string;
     question_type: QuestionType;
     score: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Option {
@@ -53,6 +66,38 @@ export interface CreateQuiz extends Omit<
 > {
     subject_id?: string;
     questions: QuestionWithOptions[];
+}
+
+export type UpdateQuizPayload = Pick<
+    Quiz,
+    | "title"
+    | "description"
+    | "duration_minutes"
+    | "is_public"
+    | "passing_score"
+    | "show_result_immediately"
+    | "show_correct_answers"
+    | "randomize_questions"
+> & {
+    subject_id: string | null;
+}
+
+export interface AddQuestionsPayload {
+    questions: QuestionWithOptions[];
+}
+
+export type UpdateQuestionPayload = Omit<
+    QuestionWithOptions,
+    "id" | "createdAt" | "updatedAt"
+>
+
+export interface QuizListParams {
+    page: number;
+    limit: number;
+    search?: string;
+    is_public?: boolean;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
 }
 
 export interface QuizWithQuestions extends Quiz {

@@ -8,8 +8,36 @@ export interface User {
     role: Role
     status: Status
     bio: string
-    avatar_url: string
-    public_id: string
+    avatar_url: string | null
+    public_id: string | null
+}
+
+export interface TeacherProfile {
+    id: string
+    user_id: string
+    school_name: string
+    createdAt: string
+    updatedAt: string
+}
+
+export interface TeacherStats {
+    classes_taught: number
+    total_students: number
+    quizzes_created: number
+}
+
+export interface TeacherAccount extends Omit<User, "id"> {
+    id: string
+    createdAt: string
+    updatedAt: string
+    teacher: TeacherProfile | null
+    stats: TeacherStats | null
+}
+
+export interface TeacherAccountResponse {
+    success: boolean
+    message: string
+    data: TeacherAccount
 }
 
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER'

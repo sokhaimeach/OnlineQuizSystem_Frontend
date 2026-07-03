@@ -1,106 +1,203 @@
-import { useState } from 'react'
-import { School, ClipboardList, Plus, Search, ArrowRight } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { StatusBadge } from '@/components/StatusBadge'
-import { EmptyState } from '@/components/EmptyState'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { useEffect, useRef, useState } from 'react'
+import { Loader2, Plus, School, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-
-const allClasses = [
-  { id: 1, name: 'Class 10-A', subject: 'Science', students: 32, assignments: 3, avgScore: 84, lastActivity: '2 hrs ago', color: 'bg-indigo-500', initials: '10A', status: 'active' as const },
-  { id: 2, name: 'Class 9-B', subject: 'Mathematics', students: 28, assignments: 2, avgScore: 79, lastActivity: '1 day ago', color: 'bg-emerald-500', initials: '9B', status: 'active' as const },
-  { id: 3, name: 'Class 11-C', subject: 'Physics', students: 25, assignments: 5, avgScore: 88, lastActivity: '3 hrs ago', color: 'bg-violet-500', initials: '11C', status: 'active' as const },
-  { id: 4, name: 'Class 8-A', subject: 'History', students: 30, assignments: 1, avgScore: 76, lastActivity: 'Yesterday', color: 'bg-amber-500', initials: '8A', status: 'active' as const },
-  { id: 5, name: 'Class 12-B', subject: 'Chemistry', students: 22, assignments: 0, avgScore: 91, lastActivity: '3 days ago', color: 'bg-rose-500', initials: '12B', status: 'active' as const },
-  { id: 6, name: 'Class 7-C', subject: 'Biology', students: 35, assignments: 4, avgScore: 72, lastActivity: '5 hrs ago', color: 'bg-cyan-500', initials: '7C', status: 'active' as const },
-]
+import { ClassCard } from '@/components/teacher/ClassCard'
+import { ClassDialog } from '@/components/teacher/ClassDialog'
+import { DeleteClassDialog } from '@/components/teacher/DeleteClassDialog'
+import { EmptyState } from '@/components/EmptyState'
+import { PageHeader } from '@/components/PageHeader'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import {
+  useCreateClass,
+  useDeleteClass,
+  useGetAllClasses,
+  useUpdateClass,
+} from '@/hooks/api/useClass'
+import type { Class, CreateClassPayload } from '@/models/class.interface'
 
 export function ClassesView() {
-  const [search, setSearch] = useState('')
   const navigate = useNavigate()
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const nextPageRequestRef = useRef(false)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [classDialogOpen, setClassDialogOpen] = useState(false)
+  const [editingClass, setEditingClass] = useState<Class | null>(null)
+  const [deletingClass, setDeletingClass] = useState<Class | null>(null)
+  const [classError, setClassError] = useState('')
 
-  const filtered = allClasses.filter(
-    c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.subject.toLowerCase().includes(search.toLowerCase()),
-  )
+  const classesQuery = useGetAllClasses(debouncedSearch)
+  const createClassMutation = useCreateClass()
+  const updateClassMutation = useUpdateClass()
+  const deleteClassMutation = useDeleteClass()
+
+  const classes = classesQuery.data?.pages.flatMap(page => page.data) ?? []
+  const totalClasses = classesQuery.data?.pages[0]?.meta.totalItems ?? 0
+  const isSaving = createClassMutation.isPending || updateClassMutation.isPending
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = classesQuery
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [search])
+
+  useEffect(() => {
+    const target = loadMoreRef.current
+    if (!target || !hasNextPage) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (
+          !entry.isIntersecting ||
+          nextPageRequestRef.current ||
+          isFetchingNextPage
+        ) return
+
+        nextPageRequestRef.current = true
+        void fetchNextPage().finally(() => {
+          nextPageRequestRef.current = false
+        })
+      },
+      { rootMargin: '200px 0px' },
+    )
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+
+  const openCreateDialog = () => {
+    createClassMutation.reset()
+    updateClassMutation.reset()
+    setEditingClass(null)
+    setClassError('')
+    setClassDialogOpen(true)
+  }
+
+  const openEditDialog = (classItem: Class) => {
+    createClassMutation.reset()
+    updateClassMutation.reset()
+    setEditingClass(classItem)
+    setClassError('')
+    setClassDialogOpen(true)
+  }
+
+  const submitClass = (payload: CreateClassPayload) => {
+    const options = {
+      onSuccess: () => {
+        setClassDialogOpen(false)
+        setEditingClass(null)
+        setClassError('')
+      },
+      onError: () => setClassError('The class could not be saved. Please try again.'),
+    }
+
+    if (editingClass) {
+      updateClassMutation.mutate({ classId: editingClass.id, payload }, options)
+    } else {
+      createClassMutation.mutate(payload, options)
+    }
+  }
+
+  const openDeleteDialog = (classItem: Class) => {
+    deleteClassMutation.reset()
+    setDeletingClass(classItem)
+  }
+
+  const confirmDelete = () => {
+    if (!deletingClass) return
+    deleteClassMutation.mutate(deletingClass.id, {
+      onSuccess: () => setDeletingClass(null),
+    })
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Classes"
-        description={`${allClasses.length} classes total`}
+        description={`${totalClasses} ${totalClasses === 1 ? 'class' : 'classes'} total`}
         icon={School}
-        action={{ label: 'New Class', icon: Plus, onClick: () => {} }}
+        action={{ label: 'New Class', icon: Plus, onClick: openCreateDialog }}
       />
 
-      {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search classes or subjects…"
+            type="search"
+            aria-label="Search classes"
+            placeholder="Search classes…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             className="pl-9"
           />
         </div>
       </div>
 
-      {/* Classes Grid */}
-      {filtered.length === 0 ? (
-        <EmptyState icon={School} title="No classes found" description="Try adjusting your search or create a new class." action={{ label: 'Create Class', onClick: () => {} }} />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(cls => (
-            <div key={cls.id} className="bg-card rounded-md border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group">
-              {/* Color Header */}
-              <div className={`h-2 ${cls.color}`} />
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-lg ${cls.color} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                      {cls.initials}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{cls.name}</h3>
-                      <p className="text-xs text-muted-foreground">{cls.subject}</p>
-                    </div>
-                  </div>
-                  <StatusBadge variant="success" dot>Active</StatusBadge>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-2 py-3 border-y border-border">
-                  <div className="text-center">
-                    <p className="text-base font-bold text-foreground">{cls.students}</p>
-                    <p className="text-[11px] text-muted-foreground">Students</p>
-                  </div>
-                  <div className="text-center border-x border-border">
-                    <p className="text-base font-bold text-foreground">{cls.assignments}</p>
-                    <p className="text-[11px] text-muted-foreground">Active</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-base font-bold text-foreground">{cls.avgScore}%</p>
-                    <p className="text-[11px] text-muted-foreground">Avg Score</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <ClipboardList className="h-3.5 w-3.5" />
-                    Last active {cls.lastActivity}
-                  </p>
-                  <Button size="sm" variant="ghost" onClick={() => navigate(`/teacher/classes/${cls.id}`)} className="gap-1 text-xs h-7 text-primary hover:text-primary">
-                    Open <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+      {classesQuery.isPending ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-64 w-full rounded-md" />
           ))}
         </div>
+      ) : classesQuery.isError ? (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-8 text-center">
+          <p className="text-sm text-destructive">The classes could not be loaded.</p>
+        </div>
+      ) : classes.length === 0 ? (
+        <EmptyState
+          icon={School}
+          title="No classes found"
+          description={debouncedSearch ? 'Try a different search.' : 'Create your first class to get started.'}
+          action={debouncedSearch ? undefined : { label: 'Create Class', onClick: openCreateDialog }}
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {classes.map(classItem => (
+              <ClassCard
+                key={classItem.id}
+                classItem={classItem}
+                onView={({ id }) => navigate(`/teacher/classes/${id}`)}
+                onEdit={openEditDialog}
+                onDelete={openDeleteDialog}
+              />
+            ))}
+          </div>
+
+          <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center" aria-live="polite">
+            {classesQuery.isFetchingNextPage && (
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" /> Loading more classes…
+              </span>
+            )}
+            {!classesQuery.hasNextPage && classes.length > 0 && (
+              <span className="text-xs text-muted-foreground">All classes loaded</span>
+            )}
+          </div>
+        </>
       )}
+
+      <ClassDialog
+        open={classDialogOpen}
+        classItem={editingClass}
+        isSubmitting={isSaving}
+        error={classError}
+        onOpenChange={(open) => {
+          if (!isSaving) setClassDialogOpen(open)
+        }}
+        onSubmit={submitClass}
+      />
+
+      <DeleteClassDialog
+        classItem={deletingClass}
+        isDeleting={deleteClassMutation.isPending}
+        error={deleteClassMutation.isError ? 'The class could not be deleted. Please try again.' : undefined}
+        onOpenChange={(open) => {
+          if (!open && !deleteClassMutation.isPending) setDeletingClass(null)
+        }}
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

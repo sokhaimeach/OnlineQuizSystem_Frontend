@@ -2,8 +2,10 @@ import api from "@/lib/axios"
 
 const studentPath = "/teacher/students"
 
-export const getStudentByClassId = async (classId: string) => {
-    return api.get(`${studentPath}/${classId}/class`)
+export const getStudentByClassId = async (classId: string, search = "") => {
+    return api.get(`${studentPath}/${classId}/class`, {
+        params: search ? { search } : undefined,
+    })
 }
 
 export const getStudentById = async (studentId: string) => {

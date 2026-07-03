@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {
   LayoutDashboard, School, BookOpen, PlusCircle, Library,
-  ClipboardList, BarChart3, UserCircle,
+  BarChart3, UserCircle,
   ChevronRight,
   GraduationCap,
   Edit3,
@@ -21,7 +21,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { NavUser } from '@/components/nav-user'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useGetRecentClasses } from '@/hooks/api/useClass'
+import {
+  useCreateClass,
+  useDeleteClass,
+  useGetRecentClasses,
+  useUpdateClass,
+} from '@/hooks/api/useClass'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   useCreateSubject,
@@ -30,6 +35,7 @@ import {
   useUpdateSubject,
 } from '@/hooks/api/useSubject'
 import type { Subject } from '@/models/subject.interface'
+import type { Class, CreateClassPayload } from '@/models/class.interface'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -47,6 +53,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SubjectFormDialog } from '@/components/teacher/SubjectFormDialog'
+import { ClassDialog } from '@/components/teacher/ClassDialog'
+import { DeleteClassDialog } from '@/components/teacher/DeleteClassDialog'
 
 export type DashboardSection =
   | 'dashboard'
@@ -56,9 +64,6 @@ export type DashboardSection =
   | 'subject-detail'
   | 'create-quiz'
   | 'question-bank'
-  | 'assignments-active'
-  | 'assignments-scheduled'
-  | 'assignments-completed'
   | 'analytics'
   | 'profile'
 
@@ -189,6 +194,9 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
   const navigate = useNavigate()
   const location = useLocation()
   const recentClassesQuery = useGetRecentClasses()
+  const createClassMutation = useCreateClass()
+  const updateClassMutation = useUpdateClass()
+  const deleteClassMutation = useDeleteClass()
   const subjectsQuery = useGetAllSubjects()
   const createSubjectMutation = useCreateSubject()
   const updateSubjectMutation = useUpdateSubject()
@@ -197,10 +205,17 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
   const [editingSubject, setEditingSubject] = React.useState<Subject | null>(null)
   const [deletingSubject, setDeletingSubject] = React.useState<Subject | null>(null)
   const [subjectError, setSubjectError] = React.useState('')
+  const [classDialogOpen, setClassDialogOpen] = React.useState(false)
+  const [editingClass, setEditingClass] = React.useState<Class | null>(null)
+  const [deletingClass, setDeletingClass] = React.useState<Class | null>(null)
+  const [classError, setClassError] = React.useState('')
 
   const subjects = subjectsQuery.data?.pages.flatMap(page => page.data.subjects) ?? []
+  const recentClasses = recentClassesQuery.data?.slice(0, 5) ?? []
   const unassignedQuizCount = subjectsQuery.data?.pages[0]?.data.unassigned_quiz_count ?? 0
+  const selectedClassId = location.pathname.match(/^\/teacher\/classes\/([^/]+)$/)?.[1]
   const selectedSubjectId = location.pathname.match(/^\/teacher\/subjects\/([^/]+)$/)?.[1]
+  const isSavingClass = createClassMutation.isPending || updateClassMutation.isPending
   const isSavingSubject = createSubjectMutation.isPending || updateSubjectMutation.isPending
 
   const openClass = (classId: string) => {
@@ -211,6 +226,55 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
   const openSubject = (subjectId: string) => {
     navigate(`/teacher/subjects/${subjectId}`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const openCreateClass = () => {
+    createClassMutation.reset()
+    updateClassMutation.reset()
+    setEditingClass(null)
+    setClassError('')
+    setClassDialogOpen(true)
+  }
+
+  const openEditClass = (classItem: Class) => {
+    createClassMutation.reset()
+    updateClassMutation.reset()
+    setEditingClass(classItem)
+    setClassError('')
+    setClassDialogOpen(true)
+  }
+
+  const openDeleteClass = (classItem: Class) => {
+    deleteClassMutation.reset()
+    setDeletingClass(classItem)
+  }
+
+  const submitClass = (payload: CreateClassPayload) => {
+    const options = {
+      onSuccess: () => {
+        setClassDialogOpen(false)
+        setEditingClass(null)
+        setClassError('')
+      },
+      onError: () => setClassError('The class could not be saved. Please try again.'),
+    }
+
+    if (editingClass) {
+      updateClassMutation.mutate({ classId: editingClass.id, payload }, options)
+    } else {
+      createClassMutation.mutate(payload, options)
+    }
+  }
+
+  const confirmDeleteClass = () => {
+    if (!deletingClass) return
+    const classId = deletingClass.id
+    deleteClassMutation.mutate(classId, {
+      onSuccess: () => {
+        setDeletingClass(null)
+        if (selectedClassId === classId) navigate('/teacher/classes')
+      },
+    })
   }
 
   const openCreateSubject = () => {
@@ -303,25 +367,81 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
               defaultOpen
               relatedSections={['classes', 'class-detail']}
               activeSection={activeSection}
+              headerAction={(
+                <Button
+                  type="button"
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={openCreateClass}
+                  aria-label="Create class"
+                  title="Create class"
+                  className="me-5"
+                >
+                  <Plus />
+                </Button>
+              )}
             >
               {recentClassesQuery.isLoading ? (
-                Array.from({ length: 2 }).map((_, index) => (
+                Array.from({ length: 5 }).map((_, index) => (
                   <SidebarMenuSubItem key={index}>
                     <Skeleton className="my-1 h-6 w-full" />
                   </SidebarMenuSubItem>
                 ))
+              ) : recentClassesQuery.isError ? (
+                <SidebarMenuSubItem>
+                  <p className="px-2 py-1 text-xs text-destructive">Could not load classes.</p>
+                </SidebarMenuSubItem>
               ) : (
-                recentClassesQuery.data?.map(classItem => classItem.id ? (
-                  <SidebarMenuSubItem key={classItem.id}>
-                    <SidebarMenuSubButton
-                      isActive={location.pathname === `/teacher/classes/${classItem.id}`}
-                      onClick={() => openClass(classItem.id!)}
-                      className="cursor-pointer"
-                    >
-                      <span>{classItem.class_name}</span>
-                    </SidebarMenuSubButton>
+                recentClasses.map(classItem => (
+                  <SidebarMenuSubItem key={classItem.id} className="group/class flex min-w-0 items-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SidebarMenuSubButton
+                          isActive={selectedClassId === classItem.id}
+                          onClick={() => openClass(classItem.id)}
+                          className="min-w-0 flex-1 cursor-pointer pr-1"
+                        >
+                          <span
+                            className="size-2 shrink-0 rounded-full bg-primary"
+                            style={classItem.color ? { backgroundColor: classItem.color } : undefined}
+                          />
+                          <span className="flex-1 truncate">{classItem.class_name}</span>
+                          <span className="text-[10px] tabular-nums text-muted-foreground">{classItem.total_student}</span>
+                        </SidebarMenuSubButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8} className="block max-w-64">
+                        <p className="font-medium">{classItem.class_name}</p>
+                        <p className="mt-1 text-background/80">
+                          {classItem.description?.trim() || 'No description provided'}
+                        </p>
+                        <p className="mt-1">
+                          {classItem.total_student} {classItem.total_student === 1 ? 'student' : 'students'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="ml-0.5 opacity-100 sm:opacity-0 sm:group-hover/class:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                          aria-label={`Actions for ${classItem.class_name}`}
+                        >
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="start">
+                        <DropdownMenuItem onSelect={() => openEditClass(classItem)}>
+                          <Edit3 /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => openDeleteClass(classItem)}>
+                          <Trash2 /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </SidebarMenuSubItem>
-                ) : null)
+                ))
               )}
               <SubNavItem label="View All Classes" section="classes" activeSection={activeSection} onNavigate={onNavigate} />
             </CollapsibleNav>
@@ -444,26 +564,6 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Assignments */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/60 px-3 py-1.5">
-            Assignments
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            <CollapsibleNav
-              icon={ClipboardList}
-              label="Assignments"
-              defaultOpen
-              relatedSections={['assignments-active', 'assignments-scheduled', 'assignments-completed']}
-              activeSection={activeSection}
-            >
-              <SubNavItem label="Active" section="assignments-active" activeSection={activeSection} onNavigate={onNavigate} />
-              <SubNavItem label="Scheduled" section="assignments-scheduled" activeSection={activeSection} onNavigate={onNavigate} />
-              <SubNavItem label="Completed" section="assignments-completed" activeSection={activeSection} onNavigate={onNavigate} />
-            </CollapsibleNav>
-          </SidebarMenu>
-        </SidebarGroup>
-
         {/* Analytics */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/60 px-3 py-1.5">
@@ -496,6 +596,27 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
       </SidebarFooter>
 
       <SidebarRail />
+
+      <ClassDialog
+        open={classDialogOpen}
+        classItem={editingClass}
+        isSubmitting={isSavingClass}
+        error={classError}
+        onOpenChange={(open) => {
+          if (!isSavingClass) setClassDialogOpen(open)
+        }}
+        onSubmit={submitClass}
+      />
+
+      <DeleteClassDialog
+        classItem={deletingClass}
+        isDeleting={deleteClassMutation.isPending}
+        error={deleteClassMutation.isError ? 'The class could not be deleted. Please try again.' : undefined}
+        onOpenChange={(open) => {
+          if (!open && !deleteClassMutation.isPending) setDeletingClass(null)
+        }}
+        onConfirm={confirmDeleteClass}
+      />
 
       <SubjectFormDialog
         open={subjectDialogOpen}

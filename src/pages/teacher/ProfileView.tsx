@@ -4,16 +4,21 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-
-const stats = [
-  { label: 'Classes Taught', value: '12' },
-  { label: 'Total Students', value: '347' },
-  { label: 'Quizzes Created', value: '24' },
-  { label: 'Avg Class Score', value: '82.4%' },
-]
+import { useUser } from '@/hooks/api/useUser'
 
 export function ProfileView() {
+  const { data: account } = useUser()
+  const fullName = [account?.first_name, account?.last_name].filter(Boolean).join(' ') || '—'
+  const initials = `${account?.first_name?.[0] ?? ''}${account?.last_name?.[0] ?? ''}`.toUpperCase() || '?'
+  const joinedDate = account?.createdAt
+    ? new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(account.createdAt))
+    : '—'
+  const stats = [
+    { label: 'Classes Taught', value: account?.stats?.classes_taught ?? 0 },
+    { label: 'Total Students', value: account?.stats?.total_students ?? 0 },
+    { label: 'Quizzes Created', value: account?.stats?.quizzes_created ?? 0 },
+  ]
+
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
       <PageHeader
@@ -35,31 +40,33 @@ export function ProfileView() {
           <div className="flex items-end justify-between -mt-12 mb-4">
             <div className="relative">
               <Avatar className="h-20 w-20 ring-4 ring-card">
-                <AvatarImage src="/avatars/teacher.jpg" alt="Jane Doe" />
-                <AvatarFallback className="text-xl bg-primary text-primary-foreground font-bold">JD</AvatarFallback>
+                <AvatarImage src={account?.avatar_url ?? undefined} alt={fullName} />
+                <AvatarFallback className="text-xl bg-primary text-primary-foreground font-bold">{initials}</AvatarFallback>
               </Avatar>
               <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 h-6 w-6 rounded-sm shadow border border-border">
                 <Camera className="h-3 w-3" />
               </Button>
             </div>
-            <StatusBadge variant="success" dot>Active Teacher</StatusBadge>
+            <StatusBadge variant={account?.status === 'ACTIVE' ? 'success' : 'muted'} dot>
+              {account?.status ?? 'Unknown'} {account?.role ?? 'Teacher'}
+            </StatusBadge>
           </div>
 
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-foreground">Jane Doe</h2>
-            <p className="text-sm text-muted-foreground">Senior Science & Mathematics Teacher</p>
+            <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
+            <p className="text-sm text-muted-foreground">{account?.bio || 'No bio provided'}</p>
           </div>
 
           {/* Info Pills */}
           <div className="flex flex-wrap gap-3 mb-5">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-sm px-3 py-1">
-              <Mail className="h-3.5 w-3.5" /> jane.doe@school.edu
+              <Mail className="h-3.5 w-3.5" /> {account?.email ?? '—'}
             </span>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-sm px-3 py-1">
-              <Building2 className="h-3.5 w-3.5" /> Science Department
+              <Building2 className="h-3.5 w-3.5" /> {account?.teacher?.school_name ?? '—'}
             </span>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-sm px-3 py-1">
-              <Calendar className="h-3.5 w-3.5" /> Joined Sept 2019
+              <Calendar className="h-3.5 w-3.5" /> Joined {joinedDate}
             </span>
           </div>
 
@@ -81,29 +88,34 @@ export function ProfileView() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">First Name</label>
-            <Input defaultValue="Jane" />
+            <Input key={`${account?.id}-first-name`} defaultValue={account?.first_name ?? ''} />
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">Last Name</label>
-            <Input defaultValue="Doe" />
+            <Input key={`${account?.id}-last-name`} defaultValue={account?.last_name ?? ''} />
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">Email Address</label>
-            <Input type="email" defaultValue="jane.doe@school.edu" />
+            <Input key={`${account?.id}-email`} type="email" defaultValue={account?.email ?? ''} />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Department</label>
-            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <option>Science Department</option>
-              <option>Mathematics Department</option>
-              <option>Humanities Department</option>
+            <label className="text-sm font-medium text-foreground">School</label>
+            <select
+              key={`${account?.id}-school`}
+              defaultValue={account?.teacher?.school_name ?? ''}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value={account?.teacher?.school_name ?? ''}>
+                {account?.teacher?.school_name || 'No school provided'}
+              </option>
             </select>
           </div>
           <div className="sm:col-span-2 flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">Bio</label>
             <textarea
               rows={3}
-              defaultValue="Passionate science and mathematics educator with 7+ years of experience in creating engaging learning experiences for students."
+              key={`${account?.id}-bio`}
+              defaultValue={account?.bio ?? ''}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
             />
           </div>

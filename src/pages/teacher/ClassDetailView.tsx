@@ -1,15 +1,29 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ArrowLeft, ClipboardList, School, Users } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 import type { DashboardSection } from "@/components/app-sidebar"
 import { PageHeader } from "@/components/PageHeader"
 import { QueryError } from "@/components/teacher/QueryError"
-import { ClassAssignmentTable } from "@/components/teacher/assignment/ClassAssignmentTable"
-import { EditAssignmentDialog } from "@/components/teacher/assignment/EditAssignmentDialog"
+import { AssignmentDialog } from "@/components/teacher/assignment/AssignmentDialog"
+import {
+  AssignmentFilters,
+  type AssignmentStatusFilter,
+} from "@/components/teacher/assignment/AssignmentFilters"
+import {
+  AssignmentShareDialog,
+  type AssignmentShareMode,
+} from "@/components/teacher/assignment/AssignmentShareDialog"
+import { AssignmentTable } from "@/components/teacher/assignment/AssignmentDataTable"
 import { StudentTable } from "@/components/teacher/student/studentTable"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useDeleteAssignment, useGetAssignmentByClassId, useUpdateAssignment } from "@/hooks/api/useAssignment"
+import {
+  useCreateAssignment,
+  useDeleteAssignment,
+  useGetAssignmentByClassId,
+  useUpdateAssignment,
+} from "@/hooks/api/useAssignment"
+import { useGetQuizOptions } from "@/hooks/api/useQuiz"
 import { useGetStudentByClassId } from "@/hooks/api/useStudent"
 import type { AssignmentWithQuiz, CreateAssignment } from "@/models/assignment.interface"
 
@@ -20,11 +34,36 @@ interface ClassDetailViewProps {
 export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
   const { classId = "" } = useParams()
   const navigate = useNavigate()
-  const studentsQuery = useGetStudentByClassId(classId)
-  const assignmentsQuery = useGetAssignmentByClassId(classId)
+  const [studentSearch, setStudentSearch] = useState("")
+  const [assignmentSearch, setAssignmentSearch] = useState("")
+  const [debouncedStudentSearch, setDebouncedStudentSearch] = useState("")
+  const [debouncedAssignmentSearch, setDebouncedAssignmentSearch] = useState("")
+  const [status, setStatus] = useState<AssignmentStatusFilter>("ALL")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingAssignment, setEditingAssignment] = useState<AssignmentWithQuiz | null>(null)
+  const [sharingAssignment, setSharingAssignment] = useState<AssignmentWithQuiz | null>(null)
+  const [shareMode, setShareMode] = useState<AssignmentShareMode>("link")
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedStudentSearch(studentSearch.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [studentSearch])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedAssignmentSearch(assignmentSearch.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [assignmentSearch])
+
+  const studentsQuery = useGetStudentByClassId(classId, debouncedStudentSearch)
+  const assignmentsQuery = useGetAssignmentByClassId(classId, {
+    search: debouncedAssignmentSearch || undefined,
+    filter: status === "ALL" ? undefined : status,
+  })
+  const quizzesQuery = useGetQuizOptions()
+  const createAssignment = useCreateAssignment()
   const updateAssignment = useUpdateAssignment()
   const deleteAssignment = useDeleteAssignment()
-  const [editingAssignment, setEditingAssignment] = useState<AssignmentWithQuiz | null>(null)
+
   const viewStudent = useCallback((studentId: string) => {
     navigate(`/teacher/students/${studentId}`)
   }, [navigate])
@@ -32,21 +71,45 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
     navigate(`/teacher/assignments/${assignmentId}/attempts`)
   }, [navigate])
   const editAssignment = useCallback((assignment: AssignmentWithQuiz) => {
+    createAssignment.reset()
     updateAssignment.reset()
     setEditingAssignment(assignment)
-  }, [updateAssignment])
+    setDialogOpen(true)
+  }, [createAssignment, updateAssignment])
+  const openCreateAssignment = useCallback(() => {
+    createAssignment.reset()
+    updateAssignment.reset()
+    setEditingAssignment(null)
+    setDialogOpen(true)
+  }, [createAssignment, updateAssignment])
   const removeAssignment = useCallback((assignment: AssignmentWithQuiz) => {
-    if (assignment.status !== "DRAFT") return
-    if (!window.confirm(`Delete the draft assignment "${assignment.title}"? This action cannot be undone.`)) return
     deleteAssignment.mutate({ assignmentId: assignment.id, classId })
   }, [classId, deleteAssignment])
-  const saveAssignment = useCallback((payload: Partial<CreateAssignment>) => {
-    if (!editingAssignment || editingAssignment.status !== "DRAFT") return
-    updateAssignment.mutate(
-      { assignmentId: editingAssignment.id, payload },
-      { onSuccess: () => setEditingAssignment(null) },
-    )
-  }, [editingAssignment, updateAssignment])
+  const saveAssignment = useCallback((payload: CreateAssignment) => {
+    const options = {
+      onSuccess: () => {
+        setDialogOpen(false)
+        setEditingAssignment(null)
+      },
+    }
+    if (editingAssignment) {
+      updateAssignment.mutate({ assignmentId: editingAssignment.id, payload }, options)
+    } else {
+      createAssignment.mutate(payload, options)
+    }
+  }, [createAssignment, editingAssignment, updateAssignment])
+  const shareAssignment = useCallback((assignment: AssignmentWithQuiz, mode: AssignmentShareMode) => {
+    setShareMode(mode)
+    setSharingAssignment(assignment)
+  }, [])
+
+  const saving = createAssignment.isPending || updateAssignment.isPending
+  const saveError = createAssignment.isError
+    ? createAssignment.error instanceof Error ? createAssignment.error.message : "The assignment could not be created."
+    : updateAssignment.isError
+      ? updateAssignment.error instanceof Error ? updateAssignment.error.message : "The assignment could not be updated."
+      : undefined
+  const quizzes = quizzesQuery.data ?? []
 
   return (
     <div className="flex flex-col gap-6">
@@ -86,14 +149,23 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
           ) : (
             <StudentTable
               students={studentsQuery.data ?? []}
-              loading={studentsQuery.isLoading}
+              loading={studentsQuery.isLoading || studentsQuery.isFetching}
+              search={studentSearch}
+              onSearchChange={setStudentSearch}
               onView={viewStudent}
             />
           )}
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-3 pt-2">
-          <p className="text-sm text-muted-foreground">View attempts and manage assignments while they are drafts.</p>
+          <p className="text-sm text-muted-foreground">Create, manage, and share assignments for this class.</p>
+          <AssignmentFilters
+            search={assignmentSearch}
+            filter={status}
+            onSearchChange={setAssignmentSearch}
+            onStatusChange={setStatus}
+            onCreate={openCreateAssignment}
+          />
           {assignmentsQuery.isError ? (
             <QueryError
               message={assignmentsQuery.error instanceof Error ? assignmentsQuery.error.message : "The assignment list could not be loaded."}
@@ -106,29 +178,35 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
                   {deleteAssignment.error instanceof Error ? deleteAssignment.error.message : "The assignment could not be deleted."}
                 </p>
               )}
-              <ClassAssignmentTable
+              <AssignmentTable
                 assignments={assignmentsQuery.data ?? []}
-                loading={assignmentsQuery.isLoading}
+                loading={assignmentsQuery.isLoading || assignmentsQuery.isFetching}
                 deletingId={deleteAssignment.isPending ? deleteAssignment.variables?.assignmentId : undefined}
                 onViewAttempts={viewAttempts}
                 onEdit={editAssignment}
                 onDelete={removeAssignment}
+                onShare={shareAssignment}
               />
             </>
           )}
         </TabsContent>
       </Tabs>
 
-      <EditAssignmentDialog
+      <AssignmentDialog
+        open={dialogOpen}
+        classId={classId}
         assignment={editingAssignment}
-        saving={updateAssignment.isPending}
-        error={updateAssignment.isError
-          ? updateAssignment.error instanceof Error
-            ? updateAssignment.error.message
-            : "The assignment could not be updated."
-          : undefined}
-        onClose={() => setEditingAssignment(null)}
+        quizzes={quizzes}
+        loadingQuizzes={quizzesQuery.isLoading}
+        saving={saving}
+        error={saveError}
+        onOpenChange={setDialogOpen}
         onSave={saveAssignment}
+      />
+      <AssignmentShareDialog
+        assignment={sharingAssignment}
+        mode={shareMode}
+        onClose={() => setSharingAssignment(null)}
       />
     </div>
   )

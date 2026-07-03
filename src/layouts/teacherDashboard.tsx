@@ -17,9 +17,6 @@ const sectionBreadcrumb: Record<DashboardSection, { label: string; href?: string
   'subject-detail': [{ label: 'Teaching' }, { label: 'Subjects' }, { label: 'Mathematics' }],
   'create-quiz': [{ label: 'Content' }, { label: 'Create Quiz' }],
   'question-bank': [{ label: 'Content' }, { label: 'Question Bank' }],
-  'assignments-active': [{ label: 'Assignments' }, { label: 'Active' }],
-  'assignments-scheduled': [{ label: 'Assignments' }, { label: 'Scheduled' }],
-  'assignments-completed': [{ label: 'Assignments' }, { label: 'Completed' }],
   analytics: [{ label: 'Insights' }, { label: 'Analytics' }],
   profile: [{ label: 'Profile' }],
 }
@@ -32,9 +29,6 @@ const sectionToRoute: Record<DashboardSection, string> = {
   'subject-detail': 'subject-detail',
   'create-quiz': 'create-quiz',
   'question-bank': 'question-bank',
-  'assignments-active': 'assignments-active',
-  'assignments-scheduled': 'assignments-scheduled',
-  'assignments-completed': 'assignments-completed',
   analytics: 'analytics',
   profile: 'profile',
 }

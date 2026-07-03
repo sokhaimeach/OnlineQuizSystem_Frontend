@@ -18,9 +18,9 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { useCreateQuiz } from '@/hooks/api/useQuiz'
 import type { CreateQuiz, QuestionWithOptions } from '@/models/quiz.interface'
 import type { Subject } from '@/models/subject.interface'
-import { createQuiz } from '@/services/teacher/quiz.service'
 // import { getSubjects } from '@/services/teacher/subject.service'
 import { useGetSubjectOptions } from '@/hooks/api/useSubject'
 
@@ -37,6 +37,7 @@ const emptyQuestion = (): QuestionWithOptions => ({
 })
 
 const initialQuiz: CreateQuiz = {
+  subject_id: "",
   title: '',
   description: '',
   duration_minutes: 5,
@@ -55,11 +56,11 @@ interface CreateQuizViewProps {
 export function CreateQuizView({ onNavigate }: CreateQuizViewProps) {
 
   const {data: subjects = [], isLoading} = useGetSubjectOptions()
+  const createQuizMutation = useCreateQuiz()
 
   const [step, setStep] = useState(0)
   const [quiz, setQuiz] = useState<CreateQuiz>(initialQuiz)
   const [error, setError] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const stepProgress = ((step + 1) / steps.length) * 100
   const totalPoints = quiz.questions.reduce((total, question) => total + question.score, 0)
@@ -133,16 +134,13 @@ export function CreateQuizView({ onNavigate }: CreateQuizViewProps) {
       return
     }
 
-    setIsSubmitting(true)
     setError('')
 
     try {
-      await createQuiz(quiz)
+      await createQuizMutation.mutateAsync(quiz)
       onNavigate('dashboard')
     } catch {
       setError('The quiz could not be published. Please check your connection and try again.')
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -418,8 +416,8 @@ export function CreateQuizView({ onNavigate }: CreateQuizViewProps) {
               </ol>
             </div>
 
-            <Button onClick={publishQuiz} disabled={isSubmitting} className="w-full">
-              {isSubmitting
+            <Button onClick={publishQuiz} disabled={createQuizMutation.isPending} className="w-full">
+              {createQuizMutation.isPending
                 ? 'Saving…'
                 : quiz.is_public ? 'Publish Quiz' : 'Save as Draft'}
             </Button>

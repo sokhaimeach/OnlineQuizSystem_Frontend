@@ -2,11 +2,11 @@ import type { StudentAttemptsDetails, StudentAttemptsHistory, StudentDetails, St
 import { getStudentAttemptsDetails, getStudentAttemptsHistories, getStudentByClassId, getStudentById } from "@/services/teacher/student.service"
 import { useQuery } from "@tanstack/react-query"
 
-export const useGetStudentByClassId = (classId: string) => {
+export const useGetStudentByClassId = (classId: string, search = "") => {
     return useQuery({
-        queryKey: ['students', classId],
+        queryKey: ['students', classId, search],
         queryFn: async () => {
-            const response = await getStudentByClassId(classId)
+            const response = await getStudentByClassId(classId, search)
             return response.data as StudentWithUser[]
         },
         enabled: Boolean(classId),
