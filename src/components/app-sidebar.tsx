@@ -55,6 +55,7 @@ import {
 import { SubjectFormDialog } from '@/components/teacher/SubjectFormDialog'
 import { ClassDialog } from '@/components/teacher/ClassDialog'
 import { DeleteClassDialog } from '@/components/teacher/DeleteClassDialog'
+import { useUser } from '@/hooks/api/useUser'
 
 export type DashboardSection =
   | 'dashboard'
@@ -66,16 +67,11 @@ export type DashboardSection =
   | 'question-bank'
   | 'analytics'
   | 'profile'
+  | 'settings'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   activeSection: DashboardSection
   onNavigate: (section: DashboardSection) => void
-}
-
-const user = {
-  name: 'Jane Doe',
-  email: 'jane.doe@school.edu',
-  avatar: '/avatars/teacher.jpg',
 }
 
 function NavItem({
@@ -192,6 +188,12 @@ function SubNavItem({
 
 export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarProps) {
   const navigate = useNavigate()
+  const account = useUser().data
+  const user = {
+    name: [account?.first_name, account?.last_name].filter(Boolean).join(' ') || 'Teacher',
+    email: account?.email || '',
+    avatar: account?.avatar_url || '',
+  }
   const location = useLocation()
   const recentClassesQuery = useGetRecentClasses()
   const createClassMutation = useCreateClass()
@@ -584,10 +586,13 @@ export function AppSidebar({ activeSection, onNavigate, ...props }: AppSidebarPr
               onClick={() => onNavigate('profile')}
               className={cn(
                 'cursor-pointer transition-colors',
-                activeSection === 'profile' && 'text-primary font-medium bg-primary/10',
+                (activeSection === 'profile' || activeSection === 'settings') && 'text-primary font-medium bg-primary/10',
               )}
             >
-              <UserCircle className={cn('h-4 w-4', activeSection === 'profile' ? 'text-primary' : 'text-muted-foreground')} />
+              <UserCircle className={cn(
+                'h-4 w-4',
+                activeSection === 'profile' || activeSection === 'settings' ? 'text-primary' : 'text-muted-foreground',
+              )} />
               <span>Profile</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

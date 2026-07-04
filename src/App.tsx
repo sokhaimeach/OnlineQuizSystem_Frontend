@@ -14,6 +14,7 @@ import { CreateQuizView } from './pages/teacher/CreateQuizView'
 import { QuestionBankView } from './pages/teacher/QuestionBankView'
 import { AnalyticsView } from './pages/teacher/AnalyticsView'
 import { ProfileView } from './pages/teacher/ProfileView'
+import { TeacherSettingsView } from './pages/teacher/TeacherSettingsView'
 import { StudentDetailView } from './pages/teacher/StudentDetailView'
 import { AttemptDetailView } from './pages/teacher/AttemptDetailView'
 import { AssignmentAttemptsView } from './pages/teacher/AssignmentAttemptsView'
@@ -21,6 +22,7 @@ import type { DashboardSection } from './components/app-sidebar'
 import Login from './layouts/login'
 import Register from './layouts/register'
 import { DoQuizPage } from './pages/DoQuizPage'
+import { Toaster } from './components/ui/sonner'
 
 const queryClient = new QueryClient()
 
@@ -38,8 +40,6 @@ const SubjectDetailRoute = withTeacherOutlet(SubjectDetailView)
 const CreateQuizRoute = withTeacherOutlet(CreateQuizView)
 const QuestionBankRoute = withTeacherOutlet(QuestionBankView)
 const AnalyticsRoute = withTeacherOutlet(AnalyticsView)
-const ProfileRoute = withTeacherOutlet(ProfileView)
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -66,11 +66,13 @@ function App() {
               <Route path='create-quiz' element={<CreateQuizRoute />} />
               <Route path='question-bank' element={<QuestionBankRoute />} />
               <Route path='analytics' element={<AnalyticsRoute />} />
-              <Route path='profile' element={<ProfileRoute />} />
+              <Route path='profile' element={<ProfileView />} />
+              <Route path='settings' element={<TeacherSettingsView />} />
             </Route>
             <Route path='*' element={<Navigate to='/login' replace />} />
           </Routes>
         </BrowserRouter>
+        <Toaster position='top-right' richColors />
       </TooltipProvider>
     </QueryClientProvider>
   )

@@ -5,6 +5,12 @@ export interface LoginPayload {
     password: string
 }
 
+export interface ChangePasswordPayload {
+    old_password: string
+    new_password: string
+    confirm_password: string
+}
+
 
 export interface RegisterPayload {
     first_name: string
@@ -15,6 +21,13 @@ export interface RegisterPayload {
     bio: string
     school_name: string
     image: File | null
+}
+
+export interface RegisterAsStudentPayload extends 
+Omit<RegisterPayload, "school_name"> {
+    date_of_birth: string
+    phone_number: string
+    parent_phone_number: string
 }
 
 export interface AuthResponse extends Omit<User, "password"> {

@@ -1,5 +1,5 @@
-import { login, registerAsTeacher } from "@/services/auth.service"
-import { setAccessToken } from "@/utils/tokenStorage"
+import { changePassword, login, logout, registerAsTeacher } from "@/services/auth.service"
+import { removeAccessToken, setAccessToken } from "@/utils/tokenStorage"
 import { useMutation } from "@tanstack/react-query"
 
 export const useLogin = () => {
@@ -29,5 +29,21 @@ export const useRegisterAsTeacher = () => {
         onError: (error: any) => {
             console.error('Registration failed:', error)
         }
+    })
+}
+
+export const useLogout = () => {
+    return useMutation({
+        mutationFn: logout,
+        onSuccess: () => {
+            removeAccessToken()
+            window.location.href = '/login'
+        },
+    })
+}
+
+export const useChangePassword = () => {
+    return useMutation({
+        mutationFn: changePassword,
     })
 }

@@ -1,4 +1,4 @@
-import type { Quiz } from "./quiz.interface";
+import type { Quiz, QuizWithQuestionsAndAnswers } from "./quiz.interface";
 
 export type AssignmentStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
 
@@ -30,4 +30,8 @@ export interface CreateAssignment {
 export interface AssignmentWithQuiz extends Assignment {
     quiz: Quiz;
     class?: string;
+}
+
+export interface AssignmentWithQuizResult extends Assignment {
+    quiz: QuizWithQuestionsAndAnswers
 }

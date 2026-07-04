@@ -40,6 +40,11 @@ export interface TeacherAccountResponse {
     data: TeacherAccount
 }
 
+export interface UpdateUserAndTeacherPayload extends
+Omit<User, "id" | "email" | "password" | "role" | "status" | "avatar_url" | "public_id"> {
+    school_name: string
+}
+
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER'
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT'
 export type Status = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'

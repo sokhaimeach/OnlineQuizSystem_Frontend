@@ -123,3 +123,12 @@ export interface QuestionAnswer {
     is_correct?: boolean;
     selected_option?: Option;
 }
+
+interface AnswerOptoin {
+    question_id: string
+    selected_option_id: string[]
+}
+
+export interface SubmitQuizPayload {
+    answers: AnswerOptoin[]
+}

@@ -19,6 +19,7 @@ const sectionBreadcrumb: Record<DashboardSection, { label: string; href?: string
   'question-bank': [{ label: 'Content' }, { label: 'Question Bank' }],
   analytics: [{ label: 'Insights' }, { label: 'Analytics' }],
   profile: [{ label: 'Profile' }],
+  settings: [{ label: 'Profile' }, { label: 'Account Settings' }],
 }
 
 const sectionToRoute: Record<DashboardSection, string> = {
@@ -31,6 +32,7 @@ const sectionToRoute: Record<DashboardSection, string> = {
   'question-bank': 'question-bank',
   analytics: 'analytics',
   profile: 'profile',
+  settings: 'settings',
 }
 
 const routeToSection = Object.fromEntries(

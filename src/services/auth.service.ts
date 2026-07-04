@@ -1,5 +1,5 @@
 import api from "@/lib/axios"
-import type { AuthResponse, LoginPayload, RegisterPayload } from "@/models/auth.interface"
+import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterAsStudentPayload, RegisterPayload } from "@/models/auth.interface"
 
 export const login = async (payload: LoginPayload) => {
     return api.post<AuthResponse>('/auth/login', payload) as unknown as Promise<AuthResponse>
@@ -25,3 +25,28 @@ export const registerAsTeacher = async (payload: RegisterPayload) => {
 export const logout = async () => {
     return api.delete('/auth/logout')
 }
+
+
+export const changePassword = async (payload: ChangePasswordPayload) => {
+    return api.put(`/auth/change-password`, payload)
+}
+
+export const registerAsStudent = async (payload: RegisterAsStudentPayload) => {
+    const formData = new FormData()
+
+    formData.append('first_name', payload.first_name)
+    formData.append('last_name', payload.last_name)
+    formData.append('email', payload.email)
+    formData.append('password', payload.password)
+    formData.append('gender', payload.gender)
+    formData.append('bio', payload.bio)
+    formData.append('date_of_birth', payload.date_of_birth)
+    formData.append('phone_number', payload.phone_number)
+    formData.append('parent_phone_number', payload.parent_phone_number)
+    if (payload.image) formData.append('image', payload.image)
+
+    return api.post<AuthResponse>('/auth/register-as-student', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+}
+
