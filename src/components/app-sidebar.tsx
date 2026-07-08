@@ -535,10 +535,12 @@ export function AppSidebar({
                       <DropdownMenuContent side="right" align="start">
                         <DropdownMenuItem
                           onSelect={() => {
-                            const url = `${window.location.origin}/student/join/${classItem.id}`
-                            void navigator.clipboard.writeText(url).then(() =>
-                              toast.success("Class join link copied.")
-                            )
+                            const url = `${window.location.origin}/student/join/${classItem.id}`;
+                            void navigator.clipboard
+                              .writeText(url)
+                              .then(() =>
+                                toast.success("Class join link copied."),
+                              );
                           }}
                         >
                           <Share2 /> Copy Join Link
