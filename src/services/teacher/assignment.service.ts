@@ -16,10 +16,6 @@ export const getAssignmentByClassId = async (classId: string, filters: Assignmen
     })
 }
 
-export const getAssignmentById = async (assignmentId: string) => {
-    return api.get(`/assignments/${assignmentId}`)
-}
-
 export const getAttemptByAssignmentId = async (assignmentId: string) => {
     return api.get(`/teacher/assignments/${assignmentId}/attempt-by-assignment-id`)
 }

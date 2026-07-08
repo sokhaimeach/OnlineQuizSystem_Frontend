@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
-import { ArrowLeft, ClipboardList, School, Users } from "lucide-react"
+import { ArrowLeft, ClipboardList, School, Share2, Users } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 import type { DashboardSection } from "@/components/app-sidebar"
 import { PageHeader } from "@/components/PageHeader"
 import { QueryError } from "@/components/teacher/QueryError"
+import { ClassShareDialog } from "@/components/teacher/ClassShareDialog"
 import { AssignmentDialog } from "@/components/teacher/assignment/AssignmentDialog"
 import {
   AssignmentFilters,
@@ -26,6 +27,7 @@ import {
 import { useGetQuizOptions } from "@/hooks/api/useQuiz"
 import { useGetStudentByClassId } from "@/hooks/api/useStudent"
 import type { AssignmentWithQuiz, CreateAssignment } from "@/models/assignment.interface"
+import type { Class } from "@/models/class.interface"
 
 interface ClassDetailViewProps {
   onNavigate: (section: DashboardSection) => void
@@ -43,6 +45,7 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
   const [editingAssignment, setEditingAssignment] = useState<AssignmentWithQuiz | null>(null)
   const [sharingAssignment, setSharingAssignment] = useState<AssignmentWithQuiz | null>(null)
   const [shareMode, setShareMode] = useState<AssignmentShareMode>("link")
+  const [sharingClass, setSharingClass] = useState<Class | null>(null)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedStudentSearch(studentSearch.trim()), 300)
@@ -126,6 +129,7 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
           title={`Class ${classId}`}
           description={`${studentsQuery.data?.length ?? 0} students · ${assignmentsQuery.data?.length ?? 0} assignments`}
           icon={School}
+          secondaryAction={{ label: "Share", icon: Share2, onClick: () => setSharingClass({ id: classId } as Class) }}
         />
       </div>
 
@@ -208,6 +212,7 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
         mode={shareMode}
         onClose={() => setSharingAssignment(null)}
       />
+      <ClassShareDialog classItem={sharingClass} onClose={() => setSharingClass(null)} />
     </div>
   )
 }

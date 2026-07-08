@@ -17,7 +17,11 @@ export function AttemptDetails({ attempt }: AttemptDetailsProps) {
   const possibleScore = attempt.assignment.quiz.questions.reduce((total, question) => total + question.score, 0)
   const percentage = getAttemptPercentage(attempt.total_score, possibleScore)
   const passed = percentage != null && percentage >= attempt.assignment.quiz.passing_score
-  const studentName = `${attempt.student.user.first_name} ${attempt.student.user.last_name}`
+  const studentName = attempt.student
+    ? `${attempt.student.user.first_name} ${attempt.student.user.last_name}`
+    : attempt.guest_name
+      ? `${attempt.guest_name} (Guest)`
+      : "—"
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">

@@ -58,7 +58,7 @@ export type AssignmentWithQuiz = Omit<Assignment, "quiz"> & {
 }
 
 export interface StudentAttemptsDetails extends Attempt {
-    student: StudentWithUser
+    student?: StudentWithUser | null
     assignment: AssignmentWithQuiz
 }
 

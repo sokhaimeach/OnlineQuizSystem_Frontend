@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createAssignment, deleteAssignment, getAssignmentByClassId, getAssignmentById, getAttemptByAssignmentId, updateAssignment } from "@/services/teacher/assignment.service"
+import { createAssignment, deleteAssignment, getAssignmentByClassId, getAttemptByAssignmentId, updateAssignment } from "@/services/teacher/assignment.service"
 import type { AssignmentWithQuiz, CreateAssignment } from "@/models/assignment.interface"
 import type { AssignmentStatus } from "@/models/assignment.interface"
 import type { Attempt } from "@/models/attempt.interface"
@@ -25,17 +25,6 @@ export const useGetAssignmentByClassId = (
             return response.data as AssignmentWithQuiz[]
         },
         enabled: Boolean(classId),
-    })
-}
-
-export const useGetAssignmentById = (assignmentId: string) => {
-    return useQuery({
-        queryKey: ['assignment', assignmentId],
-        queryFn: async () => {
-            const response = await getAssignmentById(assignmentId)
-            return response.data as AssignmentWithQuiz
-        },
-        enabled: Boolean(assignmentId),
     })
 }
 

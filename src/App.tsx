@@ -23,6 +23,18 @@ import Login from './layouts/login'
 import Register from './layouts/register'
 import { DoQuizPage } from './pages/DoQuizPage'
 import { Toaster } from './components/ui/sonner'
+import StudentDashboard from './layouts/studentDashboard'
+import { StudentRoute } from './components/StudentRoute'
+import { TeacherRoute } from './components/TeacherRoute'
+import { StudentDashboardView } from './pages/student/StudentDashboardView'
+import { StudentClassesView } from './pages/student/ClassesView'
+import { StudentClassDetailView } from './pages/student/ClassDetailView'
+import { StudentAccountView } from './pages/student/AccountView'
+import { StudentSettingsView } from './pages/student/SettingsView'
+import { StudentResultsView } from './pages/student/ResultsView'
+import { StudentResultView } from './pages/student/ResultView'
+import { StudentRegisterPage } from './pages/student/RegisterPage'
+import { JoinClassPage } from './pages/student/JoinClassPage'
 
 const queryClient = new QueryClient()
 
@@ -49,8 +61,21 @@ function App() {
             <Route path='/' element={<Navigate to='/login' replace />} />
             <Route path='/login' element={<Login />} />
             <Route path='/register' element={<Register />} />
+            <Route path='/student/register' element={<StudentRegisterPage />} />
+            <Route path='/student/join/:classId' element={<JoinClassPage />} />
             <Route path='/do-quiz/:assignmentId' element={<DoQuizPage />} />
-            <Route path='/teacher' element={<TeacherDashboard />}>
+            <Route path='/result/:attemptId' element={<StudentResultView />} />
+            <Route path='/student' element={<StudentRoute><StudentDashboard /></StudentRoute>}>
+              <Route index element={<Navigate to='dashboard' replace />} />
+              <Route path='dashboard' element={<StudentDashboardView />} />
+              <Route path='classes' element={<StudentClassesView />} />
+              <Route path='classes/:classId' element={<StudentClassDetailView />} />
+              <Route path='results' element={<StudentResultsView />} />
+              <Route path='result/:attemptId' element={<StudentResultView />} />
+              <Route path='account' element={<StudentAccountView />} />
+              <Route path='settings' element={<StudentSettingsView />} />
+            </Route>
+            <Route path='/teacher' element={<TeacherRoute><TeacherDashboard /></TeacherRoute>}>
               <Route index element={<DashboardRoute />} />
               <Route path='dashboard' element={<DashboardRoute />} />
               <Route path='classes' element={<ClassesView />} />

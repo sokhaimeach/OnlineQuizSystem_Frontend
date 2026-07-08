@@ -1,5 +1,6 @@
 import axios from 'axios'
 import {getAccessToken, setAccessToken, removeAccessToken} from '@/utils/tokenStorage'
+import { getAccessTokenFromAuthPayload } from '@/utils/authRole'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -17,6 +18,11 @@ api.interceptors.request.use((config) => {
     const token = getAccessToken()
     if (token) {
         config.headers["Authorization"] = `Bearer ${token}`
+    } else {
+        const attemptToken = getAccessToken('x_attempt_token')
+        if (attemptToken) {
+            config.headers["x-attempt-token"] = attemptToken
+        }
     }
     return config
 }, (error) => {
@@ -30,7 +36,7 @@ api.interceptors.response.use((response) => {
     if (error.response) {
         const originalRequest = error.config
         const { status } = error.response
-        const {errorCode} = error.response.data || null
+        const {errorCode} = error.response.data || {}
 
         // check if access token expired
         if (
@@ -44,10 +50,14 @@ api.interceptors.response.use((response) => {
             try {
                 const res = await api.post("/auth/refresh")
 
-                const newAccessToken = res.data.access_token
+                const newAccessToken = getAccessTokenFromAuthPayload(res)
+                if (!newAccessToken) throw new Error("Refresh response did not include an access token")
                 setAccessToken(newAccessToken)
+                originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`
+                return api(originalRequest)
             } catch(refreshError) {
                 removeAccessToken()
+                localStorage.removeItem('user_role')
                 window.location.href = '/login'
             }
         }

@@ -47,6 +47,5 @@ export const registerAsStudent = async (payload: RegisterAsStudentPayload) => {
 
     return api.post<AuthResponse>('/auth/register-as-student', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    }) as unknown as Promise<AuthResponse>
 }
-

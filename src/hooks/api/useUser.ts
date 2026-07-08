@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   changeUserImage,
+  getStudentAccount,
   getTeacherAccount,
+  updateUserAndStudentAccount,
   updateUserAndTeacherAccount,
 } from "@/services/user.service"
 
@@ -15,6 +17,24 @@ export const useUser = () => {
   })
 }
 
+export const useStudentAccount = () => {
+  return useQuery({
+    queryKey: ["student-account"],
+    queryFn: async () => {
+      const response = await getStudentAccount()
+      return response.data
+    },
+  })
+}
+
+export const useUpdateStudentAccount = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateUserAndStudentAccount,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["student-account"] }),
+  })
+}
+
 export const useUpdateUserAndTeacherAccount = () => {
   const queryClient = useQueryClient()
 
@@ -22,6 +42,7 @@ export const useUpdateUserAndTeacherAccount = () => {
     mutationFn: updateUserAndTeacherAccount,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["teacher-account"] })
+      void queryClient.invalidateQueries({ queryKey: ["student-account"] })
     },
   })
 }

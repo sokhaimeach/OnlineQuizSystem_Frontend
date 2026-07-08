@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import axios from 'axios'
 import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,13 +16,20 @@ function getErrorMessage(error: unknown) {
 
 const Login = () => {
     const location = useLocation()
+    const [searchParams] = useSearchParams()
     const registered = (location.state as { registered?: boolean } | null)?.registered
     const [form, setForm] = useState<LoginPayload>({ email: '', password: '' })
     const [showPassword, setShowPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState('')
 
-    const loginMutation = useLogin()
+    const requestedRedirect = searchParams.get('redirect')
+    const safeRedirect = requestedRedirect?.startsWith('/') && !requestedRedirect.startsWith('//')
+        ? requestedRedirect
+        : undefined
+    const studentFlow = safeRedirect?.startsWith('/student/') ?? false
+    const sharedClassId = studentFlow ? safeRedirect?.split('/').pop() : undefined
+    const loginMutation = useLogin(safeRedirect)
 
     const updateField = (field: keyof LoginPayload, value: string) => {
         setForm(current => ({ ...current, [field]: value }))
@@ -44,9 +51,11 @@ const Login = () => {
 
     return (
         <AuthLayout
-            eyebrow="Teacher portal"
+            eyebrow={studentFlow ? "Student portal" : "Teacher portal"}
             title="Welcome back"
-            description="Sign in to manage your classes, quizzes, and student progress."
+            description={studentFlow
+                ? "Sign in to continue to the class your teacher shared."
+                : "Sign in to manage your classes, quizzes, and student progress."}
             className="items-center"
         >
             {registered && (
@@ -105,14 +114,14 @@ const Login = () => {
 
                 <Button className="h-11 w-full" type="submit" disabled={isSubmitting}>
                     {isSubmitting && <LoaderCircle className="animate-spin" />}
-                    {isSubmitting ? 'Signing in…' : 'Sign in as teacher'}
+                    {isSubmitting ? 'Signing in…' : studentFlow ? 'Sign in as student' : 'Sign in as teacher'}
                 </Button>
             </form>
 
             <p className="mt-7 text-center text-sm text-muted-foreground">
                 New to QuizClass?{' '}
-                <Link className="font-medium text-primary hover:underline" to="/register">
-                    Create a teacher account
+                <Link className="font-medium text-primary hover:underline" to={sharedClassId ? `/student/register?classId=${encodeURIComponent(sharedClassId)}` : "/register"}>
+                    {studentFlow ? 'Create a student account' : 'Create a teacher account'}
                 </Link>
             </p>
         </AuthLayout>

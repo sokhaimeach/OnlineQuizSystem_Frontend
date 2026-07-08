@@ -1,4 +1,4 @@
-import { ArrowRight, ClipboardList, Pencil, Trash2, Users } from 'lucide-react'
+import { ArrowRight, ClipboardList, Pencil, Share2, Trash2, Users } from 'lucide-react'
 import type { Class } from '@/models/class.interface'
 import { Button } from '@/components/ui/button'
 
@@ -7,9 +7,10 @@ interface ClassCardProps {
   onView: (classItem: Class) => void
   onEdit: (classItem: Class) => void
   onDelete: (classItem: Class) => void
+  onShare: (classItem: Class) => void
 }
 
-export function ClassCard({ classItem, onView, onEdit, onDelete }: ClassCardProps) {
+export function ClassCard({ classItem, onView, onEdit, onDelete, onShare }: ClassCardProps) {
   const colorStyle = classItem.color ? { backgroundColor: classItem.color } : undefined
 
   return (
@@ -52,6 +53,9 @@ export function ClassCard({ classItem, onView, onEdit, onDelete }: ClassCardProp
         </dl>
 
         <div className="flex items-center justify-end gap-1">
+          <Button type="button" size="sm" variant="ghost" onClick={() => onShare(classItem)}>
+            <Share2 /> Share
+          </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => onEdit(classItem)}>
             <Pencil /> Edit
           </Button>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ClassCard } from '@/components/teacher/ClassCard'
 import { ClassDialog } from '@/components/teacher/ClassDialog'
 import { DeleteClassDialog } from '@/components/teacher/DeleteClassDialog'
+import { ClassShareDialog } from '@/components/teacher/ClassShareDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,6 +26,7 @@ export function ClassesView() {
   const [classDialogOpen, setClassDialogOpen] = useState(false)
   const [editingClass, setEditingClass] = useState<Class | null>(null)
   const [deletingClass, setDeletingClass] = useState<Class | null>(null)
+  const [sharingClass, setSharingClass] = useState<Class | null>(null)
   const [classError, setClassError] = useState('')
 
   const classesQuery = useGetAllClasses(debouncedSearch)
@@ -161,6 +163,7 @@ export function ClassesView() {
                 onView={({ id }) => navigate(`/teacher/classes/${id}`)}
                 onEdit={openEditDialog}
                 onDelete={openDeleteDialog}
+                onShare={setSharingClass}
               />
             ))}
           </div>
@@ -198,6 +201,7 @@ export function ClassesView() {
         }}
         onConfirm={confirmDelete}
       />
+      <ClassShareDialog classItem={sharingClass} onClose={() => setSharingClass(null)} />
     </div>
   )
 }
