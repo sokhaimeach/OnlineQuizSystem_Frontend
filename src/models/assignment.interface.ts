@@ -1,6 +1,6 @@
-import type { Quiz, QuizWithQuestionsAndAnswers } from "./quiz.interface";
+import type { Quiz } from "./quiz.interface";
 
-export type AssignmentStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
+export type AssignmentStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
 export interface Assignment {
     id: string;
@@ -13,6 +13,8 @@ export interface Assignment {
     due_date: string;
     allow_late_submission: boolean;
     status: AssignmentStatus;
+    total_score: string;
+    total_question: number;
 }
 
 export interface CreateAssignment {
@@ -27,11 +29,70 @@ export interface CreateAssignment {
     status: AssignmentStatus;
 }
 
-export interface AssignmentWithQuiz extends Assignment {
-    quiz: Quiz;
-    class?: string;
+export type StudentAssignmentStatus = "ACTIVE" | "UPCOMING" | "COMPLETED" | "OVERDUE"
+
+export interface StudentAssignmentListItem {
+    id: string
+    title: string
+    instructions: string
+    type: "QUIZ" | "HOMEWORK"
+    start_date: string
+    due_date: string
+    allow_late_submission: boolean
+    total_score: string
+    total_question: number
+    status: StudentAssignmentStatus
+    class: {
+        id: string
+        class_name: string
+    } | null
+    quiz: {
+        id: string
+        title: string
+        duration_minutes: number
+    } | null
+    attempt: {
+        id: string
+        status: "IN_PROGRESS" | "SUBMITTED" | "TIMEOUT"
+        score: string | null
+        correct_count: number
+        wrong_count: number
+        started_at: string
+        submitted_at: string | null
+    } | null
 }
 
-export interface AssignmentWithQuizResult extends Assignment {
-    quiz: QuizWithQuestionsAndAnswers
+export interface StudentDashboardData {
+    total_classes: number
+    active_assignments: number
+    completed_assignments: number
+    average_score: number
+    recent_attempts: {
+        id: string
+        quiz_title: string
+        class_name: string
+        score: number | null
+        total_score: string
+        submitted_at: string
+        status: "IN_PROGRESS" | "SUBMITTED" | "TIMEOUT"
+        assignment_id: string
+    }[]
+    upcoming_assignments: {
+        id: string
+        title: string
+        start_date: string
+        due_date: string
+        status: "UPCOMING"
+        class: { id: string; class_name: string } | null
+        quiz: { id: string; title: string; duration_minutes: number } | null
+    }[]
+}
+
+export interface StudentPerformanceData {
+    average_score: number
+    highest_score: number
+    lowest_score: number
+    pass_rate: number
+    quizzes_completed: number
+    quizzes_remaining: number
 }

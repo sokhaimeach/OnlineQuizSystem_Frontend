@@ -1,17 +1,22 @@
-import type { LucideIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
-  icon: LucideIcon
-  title: string
-  description: string
+  icon: LucideIcon;
+  title: string;
+  description: string;
   action?: {
-    label: string
-    onClick: () => void
-  }
+    label: string;
+    onClick: () => void;
+  };
 }
 
-export function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="p-4 rounded-full bg-muted mb-4">
@@ -25,5 +30,5 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
         </Button>
       )}
     </div>
-  )
+  );
 }

@@ -78,6 +78,7 @@ export function EditQuizDialog({
       description: quiz.description,
       duration_minutes: quiz.duration_minutes,
       is_public: quiz.is_public,
+      status: quiz.status,
       passing_score: quiz.passing_score,
       show_result_immediately: quiz.show_result_immediately,
       show_correct_answers: quiz.show_correct_answers,
@@ -161,12 +162,19 @@ export function EditQuizDialog({
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
-            <SettingSwitch
-              label="Public quiz"
-              description="Make this quiz available for assignments."
-              checked={form.is_public}
-              onChange={value => setValue("is_public", value)}
-            />
+            <label className="grid gap-1.5 text-sm font-medium">
+              Status
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                value={form.status}
+                onChange={event => setValue("status", event.target.value as Quiz["status"])}
+                disabled={saving}
+              >
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="ARCHIVED">Archived</option>
+              </select>
+            </label>
             <SettingSwitch
               label="Show results immediately"
               description="Reveal scores after submission."

@@ -1,22 +1,28 @@
-import type { ReactNode } from 'react'
-import { BookOpenCheck, CheckCircle2, Sparkles } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from "react";
+import { BookOpenCheck, CheckCircle2, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AuthLayoutProps {
-  children: ReactNode
-  eyebrow: string
-  title: string
-  description: string
-  className: string
+  children: ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+  className: string;
 }
 
 const benefits = [
-  'Create and organize engaging quizzes',
-  'Track class progress at a glance',
-  'Turn results into useful feedback',
-]
+  "Create and organize engaging quizzes",
+  "Track class progress at a glance",
+  "Turn results into useful feedback",
+];
 
-export function AuthLayout({ children, eyebrow, title, description, className = "" }: AuthLayoutProps) {
+export function AuthLayout({
+  children,
+  eyebrow,
+  title,
+  description,
+  className = "",
+}: AuthLayoutProps) {
   return (
     <main className="grid min-h-svh bg-background lg:grid-cols-[1.05fr_0.95fr]">
       <section className="relative hidden overflow-hidden bg-slate-950 px-12 py-10 text-white lg:flex lg:flex-col">
@@ -46,8 +52,11 @@ export function AuthLayout({ children, eyebrow, title, description, className = 
             how every student is learning.
           </p>
           <div className="mt-9 space-y-4">
-            {benefits.map(benefit => (
-              <div key={benefit} className="flex items-center gap-3 text-sm text-slate-200">
+            {benefits.map((benefit) => (
+              <div
+                key={benefit}
+                className="flex items-center gap-3 text-sm text-slate-200"
+              >
                 <CheckCircle2 className="size-5 text-emerald-400" />
                 {benefit}
               </div>
@@ -60,7 +69,12 @@ export function AuthLayout({ children, eyebrow, title, description, className = 
         </p>
       </section>
 
-      <section className={cn("flex min-h-svh justify-center px-5 py-10 sm:px-8", className)}>
+      <section
+        className={cn(
+          "flex min-h-svh justify-center px-5 py-10 sm:px-8",
+          className,
+        )}
+      >
         <div className="w-full max-w-md">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -70,10 +84,12 @@ export function AuthLayout({ children, eyebrow, title, description, className = 
           </div>
           <p className="mb-2 text-sm font-medium text-primary">{eyebrow}</p>
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
           <div className="mt-8">{children}</div>
         </div>
       </section>
     </main>
-  )
+  );
 }

@@ -22,3 +22,7 @@ export const deleteClass = async (classId: string) => {
 export const getRecentClasses = async () => {
     return api.get(`${classPath}/recent`)
 }
+
+export const getClassById = async (classId: string) => {
+    return api.get(`${classPath}/${classId}`)
+}

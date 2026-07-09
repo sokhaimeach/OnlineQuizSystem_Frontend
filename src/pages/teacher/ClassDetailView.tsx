@@ -1,118 +1,157 @@
-import { useCallback, useEffect, useState } from "react"
-import { ArrowLeft, ClipboardList, School, Share2, Users } from "lucide-react"
-import { useNavigate, useParams } from "react-router-dom"
-import type { DashboardSection } from "@/components/app-sidebar"
-import { PageHeader } from "@/components/PageHeader"
-import { QueryError } from "@/components/teacher/QueryError"
-import { ClassShareDialog } from "@/components/teacher/ClassShareDialog"
-import { AssignmentDialog } from "@/components/teacher/assignment/AssignmentDialog"
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, ClipboardList, School, Share2, Users } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import type { DashboardSection } from "@/components/app-sidebar";
+import { PageHeader } from "@/components/PageHeader";
+import { QueryError } from "@/components/teacher/QueryError";
+import { ClassShareDialog } from "@/components/teacher/ClassShareDialog";
+import { AssignmentDialog } from "@/components/teacher/assignment/AssignmentDialog";
 import {
   AssignmentFilters,
   type AssignmentStatusFilter,
-} from "@/components/teacher/assignment/AssignmentFilters"
+} from "@/components/teacher/assignment/AssignmentFilters";
 import {
   AssignmentShareDialog,
   type AssignmentShareMode,
-} from "@/components/teacher/assignment/AssignmentShareDialog"
-import { AssignmentTable } from "@/components/teacher/assignment/AssignmentDataTable"
-import { StudentTable } from "@/components/teacher/student/studentTable"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "@/components/teacher/assignment/AssignmentShareDialog";
+import { AssignmentTable } from "@/components/teacher/assignment/AssignmentDataTable";
+import { StudentTable } from "@/components/teacher/student/studentTable";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useCreateAssignment,
   useDeleteAssignment,
   useGetAssignmentByClassId,
   useUpdateAssignment,
-} from "@/hooks/api/useAssignment"
-import { useGetQuizOptions } from "@/hooks/api/useQuiz"
-import { useGetStudentByClassId } from "@/hooks/api/useStudent"
-import type { AssignmentWithQuiz, CreateAssignment } from "@/models/assignment.interface"
-import type { Class } from "@/models/class.interface"
+} from "@/hooks/api/useAssignment";
+import { useGetQuizOptions } from "@/hooks/api/useQuiz";
+import { useGetStudentByClassId } from "@/hooks/api/useStudent";
+import { useGetClassById } from "@/hooks/api/useClass";
+import type {
+  AssignmentWithQuiz,
+  CreateAssignment,
+} from "@/models/assignment.interface";
+import type { Class } from "@/models/class.interface";
 
 interface ClassDetailViewProps {
-  onNavigate: (section: DashboardSection) => void
+  onNavigate: (section: DashboardSection) => void;
 }
 
 export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
-  const { classId = "" } = useParams()
-  const navigate = useNavigate()
-  const [studentSearch, setStudentSearch] = useState("")
-  const [assignmentSearch, setAssignmentSearch] = useState("")
-  const [debouncedStudentSearch, setDebouncedStudentSearch] = useState("")
-  const [debouncedAssignmentSearch, setDebouncedAssignmentSearch] = useState("")
-  const [status, setStatus] = useState<AssignmentStatusFilter>("ALL")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingAssignment, setEditingAssignment] = useState<AssignmentWithQuiz | null>(null)
-  const [sharingAssignment, setSharingAssignment] = useState<AssignmentWithQuiz | null>(null)
-  const [shareMode, setShareMode] = useState<AssignmentShareMode>("link")
-  const [sharingClass, setSharingClass] = useState<Class | null>(null)
+  const { classId = "" } = useParams();
+  const navigate = useNavigate();
+  const [studentSearch, setStudentSearch] = useState("");
+  const [assignmentSearch, setAssignmentSearch] = useState("");
+  const [debouncedStudentSearch, setDebouncedStudentSearch] = useState("");
+  const [debouncedAssignmentSearch, setDebouncedAssignmentSearch] =
+    useState("");
+  const [status, setStatus] = useState<AssignmentStatusFilter>("ALL");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] =
+    useState<AssignmentWithQuiz | null>(null);
+  const [sharingAssignment, setSharingAssignment] =
+    useState<AssignmentWithQuiz | null>(null);
+  const [shareMode, setShareMode] = useState<AssignmentShareMode>("link");
+  const [sharingClass, setSharingClass] = useState<Class | null>(null);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedStudentSearch(studentSearch.trim()), 300)
-    return () => window.clearTimeout(timeout)
-  }, [studentSearch])
+    const timeout = window.setTimeout(
+      () => setDebouncedStudentSearch(studentSearch.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [studentSearch]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedAssignmentSearch(assignmentSearch.trim()), 300)
-    return () => window.clearTimeout(timeout)
-  }, [assignmentSearch])
+    const timeout = window.setTimeout(
+      () => setDebouncedAssignmentSearch(assignmentSearch.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [assignmentSearch]);
 
-  const studentsQuery = useGetStudentByClassId(classId, debouncedStudentSearch)
+  const classQuery = useGetClassById(classId);
+  const studentsQuery = useGetStudentByClassId(classId, debouncedStudentSearch);
   const assignmentsQuery = useGetAssignmentByClassId(classId, {
     search: debouncedAssignmentSearch || undefined,
     filter: status === "ALL" ? undefined : status,
-  })
-  const quizzesQuery = useGetQuizOptions()
-  const createAssignment = useCreateAssignment()
-  const updateAssignment = useUpdateAssignment()
-  const deleteAssignment = useDeleteAssignment()
+  });
+  const quizzesQuery = useGetQuizOptions();
+  const createAssignment = useCreateAssignment();
+  const updateAssignment = useUpdateAssignment();
+  const deleteAssignment = useDeleteAssignment();
 
-  const viewStudent = useCallback((studentId: string) => {
-    navigate(`/teacher/students/${studentId}`)
-  }, [navigate])
-  const viewAttempts = useCallback((assignmentId: string) => {
-    navigate(`/teacher/assignments/${assignmentId}/attempts`)
-  }, [navigate])
-  const editAssignment = useCallback((assignment: AssignmentWithQuiz) => {
-    createAssignment.reset()
-    updateAssignment.reset()
-    setEditingAssignment(assignment)
-    setDialogOpen(true)
-  }, [createAssignment, updateAssignment])
+  const viewStudent = useCallback(
+    (studentId: string) => {
+      navigate(`/teacher/students/${studentId}`);
+    },
+    [navigate],
+  );
+  const viewAttempts = useCallback(
+    (assignmentId: string) => {
+      navigate(`/teacher/assignments/${assignmentId}/attempts`);
+    },
+    [navigate],
+  );
+  const editAssignment = useCallback(
+    (assignment: AssignmentWithQuiz) => {
+      createAssignment.reset();
+      updateAssignment.reset();
+      setEditingAssignment(assignment);
+      setDialogOpen(true);
+    },
+    [createAssignment, updateAssignment],
+  );
   const openCreateAssignment = useCallback(() => {
-    createAssignment.reset()
-    updateAssignment.reset()
-    setEditingAssignment(null)
-    setDialogOpen(true)
-  }, [createAssignment, updateAssignment])
-  const removeAssignment = useCallback((assignment: AssignmentWithQuiz) => {
-    deleteAssignment.mutate({ assignmentId: assignment.id, classId })
-  }, [classId, deleteAssignment])
-  const saveAssignment = useCallback((payload: CreateAssignment) => {
-    const options = {
-      onSuccess: () => {
-        setDialogOpen(false)
-        setEditingAssignment(null)
-      },
-    }
-    if (editingAssignment) {
-      updateAssignment.mutate({ assignmentId: editingAssignment.id, payload }, options)
-    } else {
-      createAssignment.mutate(payload, options)
-    }
-  }, [createAssignment, editingAssignment, updateAssignment])
-  const shareAssignment = useCallback((assignment: AssignmentWithQuiz, mode: AssignmentShareMode) => {
-    setShareMode(mode)
-    setSharingAssignment(assignment)
-  }, [])
+    createAssignment.reset();
+    updateAssignment.reset();
+    setEditingAssignment(null);
+    setDialogOpen(true);
+  }, [createAssignment, updateAssignment]);
+  const removeAssignment = useCallback(
+    (assignment: AssignmentWithQuiz) => {
+      deleteAssignment.mutate({ assignmentId: assignment.id, classId });
+    },
+    [classId, deleteAssignment],
+  );
+  const saveAssignment = useCallback(
+    (payload: CreateAssignment) => {
+      const options = {
+        onSuccess: () => {
+          setDialogOpen(false);
+          setEditingAssignment(null);
+        },
+      };
+      if (editingAssignment) {
+        updateAssignment.mutate(
+          { assignmentId: editingAssignment.id, payload },
+          options,
+        );
+      } else {
+        createAssignment.mutate(payload, options);
+      }
+    },
+    [createAssignment, editingAssignment, updateAssignment],
+  );
+  const shareAssignment = useCallback(
+    (assignment: AssignmentWithQuiz, mode: AssignmentShareMode) => {
+      setShareMode(mode);
+      setSharingAssignment(assignment);
+    },
+    [],
+  );
 
-  const saving = createAssignment.isPending || updateAssignment.isPending
+  const saving = createAssignment.isPending || updateAssignment.isPending;
   const saveError = createAssignment.isError
-    ? createAssignment.error instanceof Error ? createAssignment.error.message : "The assignment could not be created."
+    ? createAssignment.error instanceof Error
+      ? createAssignment.error.message
+      : "The assignment could not be created."
     : updateAssignment.isError
-      ? updateAssignment.error instanceof Error ? updateAssignment.error.message : "The assignment could not be updated."
-      : undefined
-  const quizzes = quizzesQuery.data ?? []
+      ? updateAssignment.error instanceof Error
+        ? updateAssignment.error.message
+        : "The assignment could not be updated."
+      : undefined;
+  const quizzes = quizzesQuery.data ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,12 +165,47 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
           <ArrowLeft className="size-4" /> All classes
         </Button>
         <PageHeader
-          title={`Class ${classId}`}
-          description={`${studentsQuery.data?.length ?? 0} students · ${assignmentsQuery.data?.length ?? 0} assignments`}
+          title={classQuery.data?.class_name ?? `Class ${classId}`}
+          description={
+            classQuery.data?.description ||
+            `${studentsQuery.data?.length ?? 0} students · ${assignmentsQuery.data?.length ?? 0} assignments`
+          }
           icon={School}
-          secondaryAction={{ label: "Share", icon: Share2, onClick: () => setSharingClass({ id: classId } as Class) }}
+          secondaryAction={{
+            label: "Share",
+            icon: Share2,
+            onClick: () =>
+              setSharingClass({
+                id: classId,
+                class_name: classQuery.data?.class_name ?? "",
+              } as Class),
+          }}
         />
       </div>
+
+      {classQuery.data && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-lg border bg-card p-3 text-card-foreground shadow-xs">
+            <p className="text-xs text-muted-foreground">Students</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {studentsQuery.data?.length ?? 0}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-card p-3 text-card-foreground shadow-xs">
+            <p className="text-xs text-muted-foreground">Assignments</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {assignmentsQuery.data?.length ?? 0}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-card p-3 text-card-foreground shadow-xs">
+            <p className="text-xs text-muted-foreground">Active</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {assignmentsQuery.data?.filter((a) => a.status === "PUBLISHED")
+                .length ?? 0}
+            </p>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultValue="students">
         <TabsList className="h-9 bg-muted/50">
@@ -144,10 +218,16 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
         </TabsList>
 
         <TabsContent value="students" className="space-y-3 pt-2">
-          <p className="text-sm text-muted-foreground">Students currently enrolled in this class.</p>
+          <p className="text-sm text-muted-foreground">
+            Students currently enrolled in this class.
+          </p>
           {studentsQuery.isError ? (
             <QueryError
-              message={studentsQuery.error instanceof Error ? studentsQuery.error.message : "The student list could not be loaded."}
+              message={
+                studentsQuery.error instanceof Error
+                  ? studentsQuery.error.message
+                  : "The student list could not be loaded."
+              }
               onRetry={() => studentsQuery.refetch()}
             />
           ) : (
@@ -162,7 +242,9 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-3 pt-2">
-          <p className="text-sm text-muted-foreground">Create, manage, and share assignments for this class.</p>
+          <p className="text-sm text-muted-foreground">
+            Create, manage, and share assignments for this class.
+          </p>
           <AssignmentFilters
             search={assignmentSearch}
             filter={status}
@@ -172,20 +254,32 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
           />
           {assignmentsQuery.isError ? (
             <QueryError
-              message={assignmentsQuery.error instanceof Error ? assignmentsQuery.error.message : "The assignment list could not be loaded."}
+              message={
+                assignmentsQuery.error instanceof Error
+                  ? assignmentsQuery.error.message
+                  : "The assignment list could not be loaded."
+              }
               onRetry={() => assignmentsQuery.refetch()}
             />
           ) : (
             <>
               {deleteAssignment.isError && (
                 <p className="text-sm text-destructive">
-                  {deleteAssignment.error instanceof Error ? deleteAssignment.error.message : "The assignment could not be deleted."}
+                  {deleteAssignment.error instanceof Error
+                    ? deleteAssignment.error.message
+                    : "The assignment could not be deleted."}
                 </p>
               )}
               <AssignmentTable
                 assignments={assignmentsQuery.data ?? []}
-                loading={assignmentsQuery.isLoading || assignmentsQuery.isFetching}
-                deletingId={deleteAssignment.isPending ? deleteAssignment.variables?.assignmentId : undefined}
+                loading={
+                  assignmentsQuery.isLoading || assignmentsQuery.isFetching
+                }
+                deletingId={
+                  deleteAssignment.isPending
+                    ? deleteAssignment.variables?.assignmentId
+                    : undefined
+                }
                 onViewAttempts={viewAttempts}
                 onEdit={editAssignment}
                 onDelete={removeAssignment}
@@ -212,7 +306,10 @@ export function ClassDetailView({ onNavigate }: ClassDetailViewProps) {
         mode={shareMode}
         onClose={() => setSharingAssignment(null)}
       />
-      <ClassShareDialog classItem={sharingClass} onClose={() => setSharingClass(null)} />
+      <ClassShareDialog
+        classItem={sharingClass}
+        onClose={() => setSharingClass(null)}
+      />
     </div>
-  )
+  );
 }

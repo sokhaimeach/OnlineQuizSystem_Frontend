@@ -3,6 +3,7 @@ import {
     createClass,
     deleteClass,
     getAllClasses,
+    getClassById,
     getRecentClasses,
     updateClass,
 } from "@/services/teacher/class.service"
@@ -94,6 +95,17 @@ export const useGetRecentClasses = () => {
             const response = await getRecentClasses()
             return response.data as Class[]
         },
+    })
+}
+
+export const useGetClassById = (classId: string) => {
+    return useQuery({
+        queryKey: ["class", classId],
+        queryFn: async () => {
+            const response = await getClassById(classId)
+            return response.data as Class
+        },
+        enabled: Boolean(classId),
     })
 }
 

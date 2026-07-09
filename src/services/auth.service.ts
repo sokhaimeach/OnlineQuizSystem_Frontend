@@ -43,6 +43,7 @@ export const registerAsStudent = async (payload: RegisterAsStudentPayload) => {
     formData.append('date_of_birth', payload.date_of_birth)
     formData.append('phone_number', payload.phone_number)
     formData.append('parent_phone_number', payload.parent_phone_number)
+    if (payload.class_id) formData.append('class_id', payload.class_id)
     if (payload.image) formData.append('image', payload.image)
 
     return api.post<AuthResponse>('/auth/register-as-student', formData, {

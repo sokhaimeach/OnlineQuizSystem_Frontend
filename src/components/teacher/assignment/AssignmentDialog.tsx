@@ -38,7 +38,7 @@ function toInputDate(value?: string) {
 
 function toApiDate(value: string) {
   const [year, month, day] = value.split("-")
-  return `${month}/${day}/${year}`
+  return `${year}-${month}-${day}`
 }
 
 function AssignmentForm({

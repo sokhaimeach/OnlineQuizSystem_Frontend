@@ -17,9 +17,13 @@ export interface ClassInfo {
     description: string
     color: string
     teacher?: {
-        first_name?: string
-        last_name?: string
+        id?: string
         school_name?: string
+        user?: {
+            first_name?: string
+            last_name?: string
+            avatar_url?: string
+        }
     }
     subject?: {
         id?: string

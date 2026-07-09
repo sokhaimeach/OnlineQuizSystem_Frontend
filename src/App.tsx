@@ -27,14 +27,16 @@ import StudentDashboard from './layouts/studentDashboard'
 import { StudentRoute } from './components/StudentRoute'
 import { TeacherRoute } from './components/TeacherRoute'
 import { StudentDashboardView } from './pages/student/StudentDashboardView'
+import { StudentAssignmentsView } from './pages/student/AssignmentsView'
 import { StudentClassesView } from './pages/student/ClassesView'
 import { StudentClassDetailView } from './pages/student/ClassDetailView'
 import { StudentAccountView } from './pages/student/AccountView'
 import { StudentSettingsView } from './pages/student/SettingsView'
-import { StudentResultsView } from './pages/student/ResultsView'
+
 import { StudentResultView } from './pages/student/ResultView'
 import { StudentRegisterPage } from './pages/student/RegisterPage'
 import { JoinClassPage } from './pages/student/JoinClassPage'
+import { JoinSuccessPage } from './pages/student/JoinSuccessPage'
 
 const queryClient = new QueryClient()
 
@@ -63,14 +65,15 @@ function App() {
             <Route path='/register' element={<Register />} />
             <Route path='/student/register' element={<StudentRegisterPage />} />
             <Route path='/student/join/:classId' element={<JoinClassPage />} />
+            <Route path='/student/join/:classId/success' element={<JoinSuccessPage />} />
             <Route path='/do-quiz/:assignmentId' element={<DoQuizPage />} />
             <Route path='/result/:attemptId' element={<StudentResultView />} />
             <Route path='/student' element={<StudentRoute><StudentDashboard /></StudentRoute>}>
               <Route index element={<Navigate to='dashboard' replace />} />
               <Route path='dashboard' element={<StudentDashboardView />} />
+              <Route path='assignments' element={<StudentAssignmentsView />} />
               <Route path='classes' element={<StudentClassesView />} />
               <Route path='classes/:classId' element={<StudentClassDetailView />} />
-              <Route path='results' element={<StudentResultsView />} />
               <Route path='result/:attemptId' element={<StudentResultView />} />
               <Route path='account' element={<StudentAccountView />} />
               <Route path='settings' element={<StudentSettingsView />} />

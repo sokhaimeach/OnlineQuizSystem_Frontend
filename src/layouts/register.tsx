@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import axios from 'axios'
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import axios from "axios";
 import {
   Check,
   ChevronLeft,
@@ -12,129 +12,148 @@ import {
   UploadCloud,
   UserRound,
   X,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { AuthLayout } from '@/layouts/AuthLayout'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
-import type { RegisterPayload } from '@/models/auth.interface'
-import { useRegisterAsTeacher } from '@/hooks/api/useAuth'
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { AuthLayout } from "@/layouts/AuthLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import type { RegisterPayload } from "@/models/auth.interface";
+import { useRegisterAsTeacher } from "@/hooks/api/useAuth";
 
-const steps = ['Authentication', 'User info', 'Profile image']
+const steps = ["Authentication", "User info", "Profile image"];
 
 const initialForm: RegisterPayload = {
-  first_name: '',
-  last_name: '',
-  email: '',
-  password: '',
-  gender: 'OTHER',
-  bio: '',
-  school_name: '',
+  first_name: "",
+  last_name: "",
+  email: "",
+  password: "",
+  gender: "OTHER",
+  bio: "",
+  school_name: "",
   image: null,
-}
+};
 
 function RequiredMark() {
-  return <span className="ml-0.5 text-destructive" aria-hidden="true">*</span>
+  return (
+    <span className="ml-0.5 text-destructive" aria-hidden="true">
+      *
+    </span>
+  );
 }
 
 function getErrorMessage(error: unknown) {
-  if (!axios.isAxiosError(error)) return 'Unable to create your account. Please try again.'
-  const data = error.response?.data as { message?: string } | undefined
-  return data?.message ?? 'Registration failed. Please review your details and try again.'
+  if (!axios.isAxiosError(error))
+    return "Unable to create your account. Please try again.";
+  const data = error.response?.data as { message?: string } | undefined;
+  return (
+    data?.message ??
+    "Registration failed. Please review your details and try again."
+  );
 }
 
 const Register = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState<RegisterPayload>(initialForm);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [step, setStep] = useState(0)
-  const [form, setForm] = useState<RegisterPayload>(initialForm)
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [imagePreview, setImagePreview] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const stepProgress = ((step + 1) / steps.length) * 100;
 
-  const stepProgress = ((step + 1) / steps.length) * 100
-
-  const registerAsTeacherMutation = useRegisterAsTeacher()
+  const registerAsTeacherMutation = useRegisterAsTeacher();
 
   useEffect(() => {
     if (!form.image) {
-      setImagePreview('')
-      return
+      setImagePreview("");
+      return;
     }
 
-    const previewUrl = URL.createObjectURL(form.image)
-    setImagePreview(previewUrl)
-    return () => URL.revokeObjectURL(previewUrl)
-  }, [form.image])
+    const previewUrl = URL.createObjectURL(form.image);
+    setImagePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [form.image]);
 
-  const updateField = <Key extends keyof RegisterPayload>(field: Key, value: RegisterPayload[Key]) => {
-    setForm(current => ({ ...current, [field]: value }))
-    setError('')
-  }
+  const updateField = <Key extends keyof RegisterPayload>(
+    field: Key,
+    value: RegisterPayload[Key],
+  ) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setError("");
+  };
 
   // validate form
   const validateStep = (stepIndex: number) => {
     if (stepIndex === 0) {
-      if (!form.email.trim()) return 'Email address is required.'
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address.'
-      if (form.password.length < 8) return 'Password must be at least 8 characters.'
-      if (!confirmPassword) return 'Please confirm your password.'
-      if (form.password !== confirmPassword) return 'Your passwords do not match.'
+      if (!form.email.trim()) return "Email address is required.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+        return "Enter a valid email address.";
+      if (form.password.length < 8)
+        return "Password must be at least 8 characters.";
+      if (!confirmPassword) return "Please confirm your password.";
+      if (form.password !== confirmPassword)
+        return "Your passwords do not match.";
     }
 
     if (stepIndex === 1) {
-      if (!form.first_name.trim()) return 'First name is required.'
-      if (!form.last_name.trim()) return 'Last name is required.'
+      if (!form.first_name.trim()) return "First name is required.";
+      if (!form.last_name.trim()) return "Last name is required.";
     }
 
-    return ''
-  }
+    return "";
+  };
 
   const goNext = () => {
-    const validationError = validateStep(step)
+    const validationError = validateStep(step);
     if (validationError) {
-      setError(validationError)
-      return
+      setError(validationError);
+      return;
     }
-    setError('')
-    setStep(current => Math.min(steps.length - 1, current + 1))
-  }
+    setError("");
+    setStep((current) => Math.min(steps.length - 1, current + 1));
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+    event.preventDefault();
 
     if (step < steps.length - 1) {
-      goNext()
-      return
+      goNext();
+      return;
     }
 
-    const validationError = [0, 1].map(validateStep).find(Boolean)
+    const validationError = [0, 1].map(validateStep).find(Boolean);
     if (validationError) {
-      setError(validationError)
-      return
+      setError(validationError);
+      return;
     }
 
-    setIsSubmitting(true)
-    setError('')
+    setIsSubmitting(true);
+    setError("");
     try {
-      await registerAsTeacherMutation.mutateAsync(form)
+      await registerAsTeacherMutation.mutateAsync(form);
     } catch (registerError) {
-      setError(getErrorMessage(registerError))
+      setError(getErrorMessage(registerError));
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const removeImage = () => {
-    updateField('image', null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
+    updateField("image", null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   return (
     <AuthLayout
@@ -153,32 +172,38 @@ const Register = () => {
                   aria-label={`Go to ${label}`}
                   disabled={index > step}
                   onClick={() => {
-                    setStep(index)
-                    setError('')
+                    setStep(index);
+                    setError("");
                   }}
                   className={cn(
-                    'flex size-8 items-center justify-center rounded-full text-xs font-semibold transition-all',
+                    "flex size-8 items-center justify-center rounded-full text-xs font-semibold transition-all",
                     index < step
-                      ? 'bg-primary text-primary-foreground'
+                      ? "bg-primary text-primary-foreground"
                       : index === step
-                        ? 'bg-primary text-primary-foreground ring-4 ring-primary/15'
-                        : 'bg-muted text-muted-foreground',
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
+                        : "bg-muted text-muted-foreground",
                   )}
                 >
                   {index < step ? <Check className="size-4" /> : index + 1}
                 </button>
-                <span className={cn(
-                  'text-center text-[11px] font-medium sm:text-xs',
-                  index === step ? 'text-foreground' : 'text-muted-foreground',
-                )}>
+                <span
+                  className={cn(
+                    "text-center text-[11px] font-medium sm:text-xs",
+                    index === step
+                      ? "text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
                   {label}
                 </span>
               </div>
               {index < steps.length - 1 && (
-                <div className={cn(
-                  'mx-2 mt-4 h-px flex-1',
-                  index < step ? 'bg-primary' : 'bg-border',
-                )} />
+                <div
+                  className={cn(
+                    "mx-2 mt-4 h-px flex-1",
+                    index < step ? "bg-primary" : "bg-border",
+                  )}
+                />
               )}
             </div>
           ))}
@@ -199,7 +224,8 @@ const Register = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="register-email">
-                Email address<RequiredMark />
+                Email address
+                <RequiredMark />
               </label>
               <Input
                 id="register-email"
@@ -208,53 +234,69 @@ const Register = () => {
                 placeholder="teacher@school.com"
                 className="h-10"
                 value={form.email}
-                onChange={event => updateField('email', event.target.value)}
+                onChange={(event) => updateField("email", event.target.value)}
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="register-password">
-                  Password<RequiredMark />
+                <label
+                  className="text-sm font-medium"
+                  htmlFor="register-password"
+                >
+                  Password
+                  <RequiredMark />
                 </label>
                 <div className="relative">
                   <Input
                     id="register-password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     placeholder="At least 8 characters"
                     className="h-10 pr-9"
                     minLength={8}
                     value={form.password}
-                    onChange={event => updateField('password', event.target.value)}
+                    onChange={(event) =>
+                      updateField("password", event.target.value)
+                    }
                     required
                   />
                   <button
                     type="button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowPassword(current => !current)}
+                    onClick={() => setShowPassword((current) => !current)}
                   >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    {showPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
                   </button>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="confirm-password">
-                  Confirm password<RequiredMark />
+                <label
+                  className="text-sm font-medium"
+                  htmlFor="confirm-password"
+                >
+                  Confirm password
+                  <RequiredMark />
                 </label>
                 <Input
                   id="confirm-password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="Repeat password"
                   className="h-10"
                   minLength={8}
                   value={confirmPassword}
-                  onChange={event => {
-                    setConfirmPassword(event.target.value)
-                    setError('')
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    setError("");
                   }}
                   required
                 />
@@ -276,7 +318,8 @@ const Register = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="first-name">
-                  First name<RequiredMark />
+                  First name
+                  <RequiredMark />
                 </label>
                 <Input
                   id="first-name"
@@ -284,13 +327,16 @@ const Register = () => {
                   placeholder="Tola"
                   className="h-10"
                   value={form.first_name}
-                  onChange={event => updateField('first_name', event.target.value)}
+                  onChange={(event) =>
+                    updateField("first_name", event.target.value)
+                  }
                   required
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="last-name">
-                  Last name<RequiredMark />
+                  Last name
+                  <RequiredMark />
                 </label>
                 <Input
                   id="last-name"
@@ -298,7 +344,9 @@ const Register = () => {
                   placeholder="Sok"
                   className="h-10"
                   value={form.last_name}
-                  onChange={event => updateField('last_name', event.target.value)}
+                  onChange={(event) =>
+                    updateField("last_name", event.target.value)
+                  }
                   required
                 />
               </div>
@@ -317,7 +365,9 @@ const Register = () => {
                     placeholder="School name"
                     className="h-10 pl-9"
                     value={form.school_name}
-                    onChange={event => updateField('school_name', event.target.value)}
+                    onChange={(event) =>
+                      updateField("school_name", event.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -325,7 +375,11 @@ const Register = () => {
                 <label className="text-sm font-medium" htmlFor="gender">
                   Gender
                 </label>
-                <Select value={form.gender} defaultValue='OTHER' onValueChange={value => updateField('gender', value)}>
+                <Select
+                  value={form.gender}
+                  defaultValue="OTHER"
+                  onValueChange={(value) => updateField("gender", value)}
+                >
                   <SelectTrigger id="gender" className="h-10 w-full">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
@@ -348,9 +402,11 @@ const Register = () => {
                 className="min-h-24 resize-none"
                 maxLength={300}
                 value={form.bio}
-                onChange={event => updateField('bio', event.target.value)}
+                onChange={(event) => updateField("bio", event.target.value)}
               />
-              <p className="text-right text-xs text-muted-foreground">{form.bio.length}/300</p>
+              <p className="text-right text-xs text-muted-foreground">
+                {form.bio.length}/300
+              </p>
             </div>
           </div>
         )}
@@ -371,7 +427,9 @@ const Register = () => {
               className="sr-only"
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              onChange={event => updateField('image', event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                updateField("image", event.target.files?.[0] ?? null)
+              }
             />
 
             {form.image && imagePreview ? (
@@ -392,7 +450,9 @@ const Register = () => {
                       <X className="size-4" />
                     </button>
                   </div>
-                  <p className="mt-4 max-w-full truncate text-sm font-medium">{form.image.name}</p>
+                  <p className="mt-4 max-w-full truncate text-sm font-medium">
+                    {form.image.name}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {(form.image.size / 1024 / 1024).toFixed(1)} MB
                   </p>
@@ -416,15 +476,22 @@ const Register = () => {
                 <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <UploadCloud className="size-6" />
                 </span>
-                <span className="mt-4 text-sm font-medium">Click to upload an image</span>
-                <span className="mt-1 text-xs text-muted-foreground">PNG, JPG, or WEBP</span>
+                <span className="mt-4 text-sm font-medium">
+                  Click to upload an image
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">
+                  PNG, JPG, or WEBP
+                </span>
               </button>
             )}
           </div>
         )}
 
         {error && (
-          <p role="alert" className="mt-5 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p
+            role="alert"
+            className="mt-5 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {error}
           </p>
         )}
@@ -435,8 +502,8 @@ const Register = () => {
             variant="outline"
             disabled={step === 0 || isSubmitting}
             onClick={() => {
-              setStep(current => Math.max(0, current - 1))
-              setError('')
+              setStep((current) => Math.max(0, current - 1));
+              setError("");
             }}
           >
             <ChevronLeft />
@@ -450,21 +517,25 @@ const Register = () => {
             </Button>
           ) : (
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <LoaderCircle className="animate-spin" /> : <UserRound />}
-              {isSubmitting ? 'Creating account…' : 'Create account'}
+              {isSubmitting ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <UserRound />
+              )}
+              {isSubmitting ? "Creating account…" : "Create account"}
             </Button>
           )}
         </div>
       </form>
 
       <p className="mt-7 text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
+        Already have an account?{" "}
         <Link className="font-medium text-primary hover:underline" to="/login">
           Sign in
         </Link>
       </p>
     </AuthLayout>
-  )
-}
+  );
+};
 
-export default Register
+export default Register;

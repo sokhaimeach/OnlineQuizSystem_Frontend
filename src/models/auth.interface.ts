@@ -28,6 +28,7 @@ Omit<RegisterPayload, "school_name"> {
     date_of_birth: string
     phone_number: string
     parent_phone_number: string
+    class_id?: string
 }
 
 export interface AuthResponse extends Omit<User, "password"> {

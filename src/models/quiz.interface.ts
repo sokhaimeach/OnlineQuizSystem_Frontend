@@ -1,3 +1,5 @@
+export type QuizStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
 export interface Quiz {
     id: string;
     teacher_id: string;
@@ -11,6 +13,7 @@ export interface Quiz {
     show_result_immediately: boolean;
     show_correct_answers: boolean;
     randomize_questions: boolean;
+    status: QuizStatus;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -23,10 +26,11 @@ export interface QuizListItem extends Quiz {
 export interface QuizOption {
     id: string;
     title: string;
+    status: QuizStatus;
+    subject_name?: string;
     description?: string;
     question_count?: number | string;
     duration_minutes?: number;
-    difficulty_level?: string;
 }
 
 export interface QuizzesPage {
@@ -62,7 +66,7 @@ export interface QuestionWithOptions extends Question {
 
 export interface CreateQuiz extends Omit<
     Quiz,
-    "id" | "teacher_id" | "subject_id" | "total_score"
+    "id" | "teacher_id" | "subject_id" | "total_score" | "status"
 > {
     subject_id?: string;
     questions: QuestionWithOptions[];
@@ -80,6 +84,7 @@ export type UpdateQuizPayload = Pick<
     | "randomize_questions"
 > & {
     subject_id: string | null;
+    status?: QuizStatus;
 }
 
 export interface AddQuestionsPayload {
@@ -95,7 +100,7 @@ export interface QuizListParams {
     page: number;
     limit: number;
     search?: string;
-    is_public?: boolean;
+    status?: QuizStatus;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
 }
@@ -124,11 +129,11 @@ export interface QuestionAnswer {
     selected_option?: Option;
 }
 
-interface AnswerOptoin {
+interface AnswerPayload {
     question_id: string
     selected_option_id: string[]
 }
 
 export interface SubmitQuizPayload {
-    answers: AnswerOptoin[]
+    answers: AnswerPayload[]
 }

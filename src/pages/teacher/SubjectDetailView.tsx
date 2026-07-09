@@ -32,7 +32,7 @@ export function SubjectDetailView({ onNavigate }: SubjectDetailViewProps) {
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search: debouncedSearch || undefined,
-    is_public: status === 'ALL' ? undefined : status === 'PUBLISHED',
+    status: status === 'ALL' ? undefined : status,
     sortBy: sort?.id,
     sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : undefined,
   })

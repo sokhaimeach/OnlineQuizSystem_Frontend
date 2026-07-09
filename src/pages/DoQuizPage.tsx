@@ -1,11 +1,12 @@
 import {
   AlarmClock,
-  ArrowLeft,
-  ArrowRight,
+  AlertCircle,
   CheckCircle2,
   ClipboardList,
+  Clock,
   Loader2,
   Send,
+  TimerOff,
 } from "lucide-react";
 import {
   useCallback,
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCreateAttempt,
   useDoQuiz,
@@ -36,67 +38,200 @@ import {
 } from "@/hooks/api/useStudent";
 import { cn } from "@/lib/utils";
 import { getStoredRole } from "@/utils/authRole";
-import { getAccessToken } from "@/utils/tokenStorage";
+import { getAccessToken, setAccessToken } from "@/utils/tokenStorage";
+import type { AttemptState } from "@/models/attempt.interface";
+import type { QuestionWithOptions } from "@/models/quiz.interface";
 
-function responseData<T>(response: unknown) {
-  return (response as { data?: T }).data as T;
-}
+type PageState =
+  | { phase: "guest-form" }
+  | { phase: "creating" }
+  | { phase: "unavailable"; message: string; redirect?: string }
+  | { phase: "ready"; attemptId: string }
+  | { phase: "quiz"; attemptId: string }
+  | { phase: "submitting" }
+  | { phase: "redirecting"; url: string };
 
 export function DoQuizPage() {
   const { assignmentId = "" } = useParams();
   const create = useCreateAttempt();
-  const [guestName, setGuestName] = useState("");
-  const [attemptId, setAttemptId] = useState("");
-  const autoStarted = useRef(false);
+  const navigate = useNavigate();
   const registered = Boolean(getAccessToken() && getStoredRole() === "STUDENT");
-  const start = useCallback(
+  const [page, setPage] = useState<PageState>(
+    registered ? { phase: "creating" } : { phase: "guest-form" },
+  );
+  const startedRef = useRef(false);
+
+  const startAttempt = useCallback(
     async (name?: string) => {
       try {
+        setPage({ phase: "creating" });
         const response = await create.mutateAsync({
           assignment_id: assignmentId,
           ...(name ? { guest_name: name } : {}),
         });
-        const attempt = responseData<{ id: string }>(response);
-        if (!attempt?.id) throw new Error("Attempt ID missing");
-        setAttemptId(attempt.id);
-      } catch {
-        toast.error("The quiz attempt could not be started.");
+        const state = (response as { data?: AttemptState })?.data;
+        if (!state) {
+          setPage({
+            phase: "unavailable",
+            message: "Could not start attempt.",
+          });
+          return;
+        }
+        if (state.canViewResult && state.redirect) {
+          setPage({ phase: "redirecting", url: state.redirect });
+          navigate(state.redirect, { replace: true });
+          return;
+        }
+        if (state.canContinue && state.id) {
+          setPage({ phase: "quiz", attemptId: state.id });
+          return;
+        }
+        if (state.canStart && state.id) {
+          setPage({ phase: "quiz", attemptId: state.id });
+          return;
+        }
+        if (state.id && !state.canStart) {
+          setPage({ phase: "ready", attemptId: state.id });
+          return;
+        }
+        setPage({
+          phase: "unavailable",
+          message: state.message || "Cannot start this assignment.",
+        });
+      } catch (err: unknown) {
+        const errorResponse =
+          err && typeof err === "object" && "response" in err
+            ? (
+                err as {
+                  response: { data?: { errorCode?: string; message?: string } };
+                }
+              ).response?.data
+            : null;
+        const errorCode = errorResponse?.errorCode;
+        const msg =
+          errorResponse?.message ?? "The quiz attempt could not be started.";
+
+        if (errorCode === "ASSIGNMENT_EXPIRED") {
+          setPage({
+            phase: "unavailable",
+            message:
+              "This assignment is no longer available. The due date has passed.",
+            redirect: "/student/assignments",
+          });
+        } else if (errorCode === "ASSIGNMENT_NOT_STARTED") {
+          setPage({
+            phase: "unavailable",
+            message:
+              "This assignment has not started yet. Please check back later.",
+            redirect: "/student/assignments",
+          });
+        } else if (errorCode === "QUIZ_IS_DRAFT") {
+          setPage({
+            phase: "unavailable",
+            message:
+              "This quiz is currently in draft mode and cannot be accessed.",
+            redirect: "/student/assignments",
+          });
+        } else if (
+          errorCode === "ASSIGNMENT_NOT_PUBLISHED" ||
+          errorCode === "ASSIGNMENT_DRAFT"
+        ) {
+          setPage({
+            phase: "unavailable",
+            message: "This assignment is not yet available.",
+            redirect: "/student/assignments",
+          });
+        } else if (errorCode === "ACCESS_DENIED") {
+          setPage({
+            phase: "unavailable",
+            message: "You do not have access to this assignment.",
+            redirect: "/student/assignments",
+          });
+        } else {
+          setPage({ phase: "unavailable", message: msg });
+        }
       }
     },
-    [assignmentId, create],
+    [assignmentId, create, navigate],
   );
+
   useEffect(() => {
-    if (registered && !autoStarted.current) {
-      autoStarted.current = true;
-      void start();
+    if (registered && !startedRef.current) {
+      startedRef.current = true;
+      void startAttempt();
     }
-  }, [registered, start]);
-  if (attemptId)
-    return <QuizSession attemptId={attemptId} registered={registered} />;
-  if (registered) {
-    if (create.isPending)
-      return (
-        <QuizMessage
-          icon={<Loader2 className="animate-spin" />}
-          title="Starting your quiz…"
-        />
-      );
-    if (create.isError)
-      return (
-        <QuizMessage
-          icon={<ClipboardList />}
-          title="Could not start quiz"
-          detail="Please try again."
-        />
-      );
-    return null;
+  }, [registered, startAttempt]);
+
+  if (page.phase === "guest-form") {
+    return (
+      <GuestForm
+        loading={create.isPending}
+        onSubmit={(name) => void startAttempt(name)}
+      />
+    );
   }
-  const submitGuest = (e: FormEvent) => {
+
+  if (page.phase === "creating") {
+    return (
+      <CenteredMessage
+        icon={<Loader2 className="size-6 animate-spin" />}
+        title="Starting your quiz…"
+      />
+    );
+  }
+
+  if (page.phase === "unavailable") {
+    return (
+      <UnavailableScreen message={page.message} redirect={page.redirect} />
+    );
+  }
+
+  if (page.phase === "redirecting") {
+    return (
+      <CenteredMessage
+        icon={<Loader2 className="size-6 animate-spin" />}
+        title="Taking you to the result…"
+      />
+    );
+  }
+
+  if (page.phase === "ready" || page.phase === "quiz") {
+    return (
+      <QuizSession
+        attemptId={page.attemptId}
+        registered={registered}
+        onUnavailable={(msg, url) =>
+          setPage({ phase: "unavailable", message: msg, redirect: url })
+        }
+        onSubmitted={(url) => {
+          setPage({ phase: "redirecting", url });
+          navigate(url, { replace: true });
+        }}
+      />
+    );
+  }
+
+  return null;
+}
+
+function GuestForm({
+  loading,
+  onSubmit,
+}: {
+  loading: boolean;
+  onSubmit: (name: string) => void;
+}) {
+  const [name, setName] = useState("");
+
+  const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (guestName.trim().length < 2)
-      return toast.error("Enter your name to continue.");
-    void start(guestName.trim());
+    if (name.trim().length < 2) {
+      toast.error("Enter your name to continue.");
+      return;
+    }
+    onSubmit(name.trim());
   };
+
   return (
     <main className="grid min-h-svh place-items-center bg-muted/30 p-4">
       <Card className="w-full max-w-lg">
@@ -110,19 +245,19 @@ export function DoQuizPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={submitGuest}>
+          <form className="space-y-4" onSubmit={submit}>
             <label className="grid gap-2 text-sm font-medium">
               Your full name
               <Input
                 autoFocus
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
               />
             </label>
-            <Button className="w-full" disabled={create.isPending}>
-              {create.isPending && <Loader2 className="animate-spin" />} Create
-              attempt and start
+            <Button className="w-full" disabled={loading}>
+              {loading && <Loader2 className="animate-spin" />}
+              Create attempt and start
             </Button>
           </form>
         </CardContent>
@@ -131,261 +266,38 @@ export function DoQuizPage() {
   );
 }
 
-function QuizSession({
-  attemptId,
-  registered,
+function UnavailableScreen({
+  message,
+  redirect,
 }: {
-  attemptId: string;
-  registered: boolean;
+  message: string;
+  redirect?: string;
 }) {
-  const query = useDoQuiz(attemptId);
-  const submit = useSubmitQuiz();
   const navigate = useNavigate();
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
-  const [confirm, setConfirm] = useState(false);
-  const [seconds, setSeconds] = useState<number | null>(null);
-  const submitted = useRef(false);
-  const quiz = query.data;
-  const questions = useMemo(() => {
-    if (!quiz) return [];
-    return [...quiz.assignment.quiz.questions].sort(
-      (a, b) =>
-        quiz.question_order.indexOf(a.id ?? "") -
-        quiz.question_order.indexOf(b.id ?? ""),
-    );
-  }, [quiz]);
-  const finish = useCallback(async () => {
-    if (submitted.current || !quiz) return;
-    submitted.current = true;
-    try {
-      await submit.mutateAsync({
-        attemptId,
-        payload: {
-          answers: Object.entries(answers).map(
-            ([question_id, selected_option_id]) => ({
-              question_id,
-              selected_option_id,
-            }),
-          ),
-        },
-      });
-      toast.success("Quiz submitted successfully.");
-      navigate(
-        registered ? `/student/result/${attemptId}` : `/result/${attemptId}`,
-        { replace: true },
-      );
-    } catch {
-      submitted.current = false;
-      toast.error("Your quiz could not be submitted. Please try again.");
-    }
-  }, [answers, attemptId, navigate, quiz, registered, submit]);
-  useEffect(() => {
-    if (!quiz?.assignment.quiz.duration_minutes) return;
-    const deadline =
-      new Date(quiz.started_at).getTime() +
-      quiz.assignment.quiz.duration_minutes * 60_000;
-    const tick = () =>
-      setSeconds(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [quiz]);
-  useEffect(() => {
-    if (seconds === 0) void finish();
-  }, [finish, seconds]);
-  if (query.isLoading)
-    return (
-      <QuizMessage
-        icon={<Loader2 className="animate-spin" />}
-        title="Loading your quiz…"
-      />
-    );
-  if (query.isError || !quiz || !questions.length)
-    return (
-      <QuizMessage
-        icon={<ClipboardList />}
-        title="Quiz unavailable"
-        detail="The questions could not be loaded."
-      />
-    );
-  const question = questions[current];
-  const questionId = question.id ?? "";
-  const selected = answers[questionId] ?? [];
-  const choose = (optionId: string) =>
-    setAnswers((old) => {
-      if (question.question_type === "SINGLE_CHOICE")
-        return { ...old, [questionId]: [optionId] };
-      return {
-        ...old,
-        [questionId]: selected.includes(optionId)
-          ? selected.filter((id) => id !== optionId)
-          : [...selected, optionId],
-      };
-    });
-  const answered = Object.values(answers).filter((a) => a.length).length;
-  const time =
-    seconds == null
-      ? null
-      : `${Math.floor(seconds / 60)
-          .toString()
-          .padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
   return (
-    <main className="min-h-svh bg-muted/30">
-      <header className="sticky top-0 z-20 border-b bg-card">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">
-              {quiz.assignment.quiz.title}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {quiz.assignment.title}
-            </p>
-          </div>
-          {time && (
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-sm font-bold",
-                seconds != null &&
-                  seconds < 300 &&
-                  "border-destructive/40 bg-destructive/10 text-destructive",
-              )}
-            >
-              <AlarmClock className="size-4" />
-              {time}
-            </div>
-          )}
-          <Button onClick={() => setConfirm(true)}>
-            <Send /> <span className="hidden sm:inline">Submit</span>
+    <main className="grid min-h-svh place-items-center bg-muted/30 p-4">
+      <Card className="w-full max-w-md text-center">
+        <CardContent className="py-12">
+          <span className="mx-auto grid size-14 place-items-center rounded-full bg-amber-500/10 text-amber-600">
+            <AlertCircle className="size-7" />
+          </span>
+          <h1 className="mt-4 text-xl font-bold">Assignment unavailable</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+          <Button
+            className="mt-6"
+            onClick={() =>
+              navigate(redirect || "/student/assignments", { replace: true })
+            }
+          >
+            Go to assignments
           </Button>
-        </div>
-      </header>
-      <div className="mx-auto grid max-w-6xl gap-5 p-4 lg:grid-cols-[220px_1fr]">
-        <aside className="rounded-xl border bg-card p-4 lg:sticky lg:top-20 lg:self-start">
-          <div className="flex justify-between text-sm">
-            <span>Progress</span>
-            <span>
-              {answered}/{questions.length}
-            </span>
-          </div>
-          <Progress
-            value={(answered / questions.length) * 100}
-            className="mt-2"
-          />
-          <div className="mt-4 grid grid-cols-8 gap-2 lg:grid-cols-4">
-            {questions.map((q, i) => (
-              <button
-                key={q.id}
-                onClick={() => setCurrent(i)}
-                className={cn(
-                  "grid aspect-square place-items-center rounded-md border text-xs font-medium",
-                  current === i && "ring-2 ring-primary",
-                  answers[q.id ?? ""]?.length &&
-                    "border-primary bg-primary text-primary-foreground",
-                )}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        </aside>
-        <section className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  Question {current + 1} of {questions.length}
-                </span>
-                <span>{question.score} points</span>
-              </div>
-              <CardTitle className="pt-2 text-xl leading-relaxed">
-                {question.question_text}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {question.question_type === "MULTIPLE_CHOICE"
-                  ? "Select all answers that apply."
-                  : "Select one answer."}
-              </p>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              {question.options.map((option, i) => {
-                const id = option.id ?? "";
-                const active = selected.includes(id);
-                return (
-                  <button
-                    key={id}
-                    onClick={() => choose(id)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg border p-4 text-left transition hover:border-primary/50",
-                      active &&
-                        "border-primary bg-primary/5 ring-1 ring-primary",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "grid size-7 shrink-0 place-items-center rounded-full border text-xs",
-                        active &&
-                          "border-primary bg-primary text-primary-foreground",
-                      )}
-                    >
-                      {active ? (
-                        <CheckCircle2 className="size-4" />
-                      ) : (
-                        String.fromCharCode(65 + i)
-                      )}
-                    </span>
-                    <span>{option.option_text}</span>
-                  </button>
-                );
-              })}
-            </CardContent>
-          </Card>
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              disabled={current === 0}
-              onClick={() => setCurrent((i) => i - 1)}
-            >
-              <ArrowLeft /> Previous
-            </Button>
-            {current < questions.length - 1 ? (
-              <Button onClick={() => setCurrent((i) => i + 1)}>
-                Next <ArrowRight />
-              </Button>
-            ) : (
-              <Button onClick={() => setConfirm(true)}>
-                Review & submit <Send />
-              </Button>
-            )}
-          </div>
-        </section>
-      </div>
-      <Dialog open={confirm} onOpenChange={setConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Submit your quiz?</DialogTitle>
-            <DialogDescription>
-              You answered {answered} of {questions.length} questions.{" "}
-              {answered < questions.length &&
-                `${questions.length - answered} unanswered question(s) will receive no credit.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirm(false)}>
-              Keep working
-            </Button>
-            <Button disabled={submit.isPending} onClick={() => void finish()}>
-              {submit.isPending && <Loader2 className="animate-spin" />}Submit
-              quiz
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </main>
   );
 }
 
-function QuizMessage({
+function CenteredMessage({
   icon,
   title,
   detail,
@@ -406,5 +318,410 @@ function QuizMessage({
         )}
       </div>
     </main>
+  );
+}
+
+function TimeoutScreen({
+  assignmentTitle,
+  quizTitle,
+}: {
+  assignmentTitle: string;
+  quizTitle: string;
+}) {
+  const navigate = useNavigate();
+  return (
+    <main className="grid min-h-svh place-items-center bg-muted/30 p-4">
+      <Card className="w-full max-w-md text-center">
+        <CardContent className="py-12">
+          <span className="mx-auto grid size-14 place-items-center rounded-full bg-destructive/10 text-destructive">
+            <TimerOff className="size-7" />
+          </span>
+          <h1 className="mt-4 text-xl font-bold">Time&rsquo;s up!</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The time limit for <strong>{quizTitle}</strong> has expired. Your
+            answers have been submitted automatically.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {assignmentTitle}
+          </p>
+          <Button className="mt-6" onClick={() => navigate(-1)}>
+            Go back
+          </Button>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+function QuizSession({
+  attemptId,
+  registered,
+  onUnavailable,
+  onSubmitted,
+}: {
+  attemptId: string;
+  registered: boolean;
+  onUnavailable: (msg: string, redirect?: string) => void;
+  onSubmitted: (url: string) => void;
+}) {
+  const query = useDoQuiz(attemptId);
+  const submit = useSubmitQuiz();
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [confirm, setConfirm] = useState(false);
+  const [seconds, setSeconds] = useState<number | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const submittedRef = useRef(false);
+  const navigate = useNavigate();
+
+  // Parse the raw response - unwrap the Axios data
+  const rawData = query.data as { data?: unknown } | undefined;
+  const sessionData = rawData?.data as
+    | {
+        status?: string;
+        canSubmit?: boolean;
+        canViewResult?: boolean;
+        redirect?: string;
+        message?: string;
+        assignment?: {
+          quiz?: { title?: string; questions?: unknown[] };
+          title?: string;
+        };
+      }
+    | undefined;
+
+  const isFinished =
+    sessionData?.status === "SUBMITTED" || sessionData?.status === "TIMEOUT";
+  const isUnavailable =
+    sessionData?.status === "NOT_FOUND" ||
+    sessionData?.status === "QUIZ_DELETED" ||
+    sessionData?.status === "QUIZ_DRAFT" ||
+    sessionData?.status === "ASSIGNMENT_UNPUBLISHED";
+
+  useEffect(() => {
+    if (isFinished && sessionData?.redirect) {
+      onSubmitted(sessionData.redirect);
+    } else if (isFinished && !sessionData?.redirect) {
+      onSubmitted(`/result/${attemptId}`);
+    } else if (isUnavailable) {
+      onUnavailable(
+        sessionData?.message || "This quiz is no longer available.",
+        "/student/assignments",
+      );
+    }
+  }, [
+    isFinished,
+    isUnavailable,
+    sessionData,
+    onSubmitted,
+    onUnavailable,
+    attemptId,
+  ]);
+
+  const questions = useMemo(() => {
+    if (!sessionData?.assignment?.quiz?.questions) return [];
+    return sessionData.assignment.quiz.questions as QuestionWithOptions[];
+  }, [sessionData]);
+
+  // Timer
+  useEffect(() => {
+    if (
+      !sessionData?.assignment?.quiz?.duration_minutes ||
+      !("started_at" in (sessionData ?? {}))
+    )
+      return;
+    const startedAt = new Date(
+      (sessionData as { started_at?: string }).started_at ?? "",
+    ).getTime();
+    if (!startedAt) return;
+    const durMs = (sessionData.assignment.quiz.duration_minutes ?? 0) * 60_000;
+    const deadline = startedAt + durMs;
+
+    const tick = () =>
+      setSeconds(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [sessionData]);
+
+  // Auto-submit on time expiry
+  useEffect(() => {
+    if (seconds === 0 && !submittedRef.current) {
+      setTimedOut(true);
+    }
+  }, [seconds]);
+
+  const finish = useCallback(async () => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    try {
+      const payload = {
+        answers: Object.entries(answers).map(
+          ([question_id, selected_option_id]) => ({
+            question_id,
+            selected_option_id,
+          }),
+        ),
+      };
+      const response = await submit.mutateAsync({ attemptId, payload });
+      const result = (response as { data?: { redirect?: string } })?.data;
+      toast.success("Quiz submitted successfully.");
+      onSubmitted(result?.redirect || `/result/${attemptId}`);
+    } catch {
+      submittedRef.current = false;
+      toast.error("Your quiz could not be submitted. Please try again.");
+    }
+  }, [answers, attemptId, submit, onSubmitted]);
+
+  // Warn before leaving
+  useEffect(() => {
+    if (isFinished || timedOut) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      if (Object.values(answers).some((a) => a.length > 0)) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [answers, isFinished, timedOut]);
+
+  if (timedOut) {
+    return (
+      <TimeoutScreen
+        assignmentTitle={sessionData?.assignment?.title ?? ""}
+        quizTitle={sessionData?.assignment?.quiz?.title ?? ""}
+      />
+    );
+  }
+
+  if (query.isLoading) {
+    return (
+      <main className="min-h-svh bg-muted/30">
+        <div className="mx-auto max-w-3xl space-y-6 p-6">
+          <Skeleton className="h-16 w-full rounded-xl" />
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-xl" />
+          ))}
+        </div>
+      </main>
+    );
+  }
+
+  if (query.isError || !questions.length) {
+    if (isUnavailable || isFinished) return null; // already handled by useEffect
+    return (
+      <UnavailableScreen
+        message={
+          query.isError
+            ? "Could not load quiz questions."
+            : "No questions available for this quiz."
+        }
+      />
+    );
+  }
+
+  const answeredCount = Object.values(answers).filter((a) => a.length).length;
+  const totalQuestions = questions.length;
+  const timeDisplay =
+    seconds == null
+      ? null
+      : `${Math.floor(seconds / 60)
+          .toString()
+          .padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+  const isLowTime = seconds != null && seconds < 300;
+
+  return (
+    <main className="min-h-svh bg-muted/30">
+      {/* Sticky header */}
+      <header
+        className={cn(
+          "sticky top-0 z-20 border-b backdrop-blur transition-colors",
+          isLowTime ? "bg-destructive/5 border-destructive/20" : "bg-card/95",
+        )}
+      >
+        <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">
+              {sessionData?.assignment?.quiz?.title ?? ""}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {answeredCount}/{totalQuestions} answered
+            </p>
+          </div>
+          {timeDisplay && (
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-sm font-bold",
+                isLowTime
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border",
+              )}
+            >
+              {isLowTime ? (
+                <AlarmClock className="size-4" />
+              ) : (
+                <Clock className="size-4" />
+              )}
+              {timeDisplay}
+            </div>
+          )}
+          {totalQuestions > 0 && (
+            <div className="hidden w-24 sm:block">
+              <Progress
+                value={(answeredCount / totalQuestions) * 100}
+                className={cn("h-2", isLowTime && "bg-destructive/20")}
+              />
+            </div>
+          )}
+          <Button
+            size="sm"
+            disabled={submit.isPending}
+            onClick={() => setConfirm(true)}
+          >
+            {submit.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+            <span className="hidden sm:inline ml-1">Submit</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* Questions */}
+      <div className="mx-auto max-w-3xl space-y-6 p-4 pb-24 sm:p-6 sm:pb-32">
+        {questions.map((question, index) => (
+          <QuestionCard
+            key={question.id}
+            question={question}
+            index={index}
+            selected={answers[question.id ?? ""] ?? []}
+            onSelect={(optionId) => {
+              const qId = question.id ?? "";
+              setAnswers((prev) => {
+                const curr = prev[qId] ?? [];
+                if (question.question_type === "SINGLE_CHOICE") {
+                  return { ...prev, [qId]: [optionId] };
+                }
+                return {
+                  ...prev,
+                  [qId]: curr.includes(optionId)
+                    ? curr.filter((id) => id !== optionId)
+                    : [...curr, optionId],
+                };
+              });
+            }}
+          />
+        ))}
+
+        {/* Submit area */}
+        <div className="flex justify-center pt-4">
+          <Button
+            size="lg"
+            disabled={submit.isPending}
+            onClick={() => setConfirm(true)}
+            className="gap-2 px-8"
+          >
+            {submit.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+            Submit your answers
+          </Button>
+        </div>
+      </div>
+
+      {/* Confirm dialog */}
+      <Dialog open={confirm} onOpenChange={setConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Submit your quiz?</DialogTitle>
+            <DialogDescription>
+              You answered {answeredCount} of {totalQuestions} questions.
+              {answeredCount < totalQuestions &&
+                ` ${totalQuestions - answeredCount} unanswered question(s) will receive no credit.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirm(false)}>
+              Keep working
+            </Button>
+            <Button disabled={submit.isPending} onClick={() => void finish()}>
+              {submit.isPending && <Loader2 className="animate-spin" />}
+              Submit quiz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
+  );
+}
+
+function QuestionCard({
+  question,
+  index,
+  selected,
+  onSelect,
+}: {
+  question: QuestionWithOptions;
+  index: number;
+  selected: string[];
+  onSelect: (optionId: string) => void;
+}) {
+  const isMultiple = question.question_type === "MULTIPLE_CHOICE";
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="bg-muted/50 pb-3">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-medium">Question {index + 1}</span>
+          <span>
+            {question.score} pt{question.score !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <CardTitle className="pt-1 text-base font-semibold leading-relaxed">
+          {question.question_text}
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {isMultiple ? "Select all that apply" : "Select one answer"}
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-2 p-4">
+        {question.options.map((option, i) => {
+          const id = option.id ?? "";
+          const active = selected.includes(id);
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onSelect(id)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all hover:border-primary/50",
+                active
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid size-6 shrink-0 place-items-center rounded-full border text-[11px] font-medium",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-muted-foreground/30 text-muted-foreground",
+                )}
+              >
+                {active ? (
+                  <CheckCircle2 className="size-3.5" />
+                ) : (
+                  (letters[i] ?? i + 1)
+                )}
+              </span>
+              <span className="flex-1">{option.option_text}</span>
+            </button>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

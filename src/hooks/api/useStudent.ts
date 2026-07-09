@@ -70,17 +70,21 @@ export const useClassAttempts = (classId: string) => useQuery({
 export const useCreateAttempt = () => useMutation({
   mutationFn: createAttempt,
   onSuccess: response => {
-    const attempt = body<{ access_token?: string }>(response)
-    if (attempt?.access_token && !getAccessToken()) {
-      setAccessToken(attempt.access_token, "x_attempt_token")
+    const data = (response as { data?: { access_token?: string } })?.data
+    if (data?.access_token && !getAccessToken()) {
+      setAccessToken(data.access_token, "x_attempt_token")
     }
+  },
+  onError: () => {
+    // Errors are handled by the calling component (DoQuizPage)
   },
 })
 
 export const useDoQuiz = (attemptId: string) => useQuery({
   queryKey: ["do-quiz", attemptId],
-  queryFn: async () => body<DoQuizAttempt>(await getDoQuiz(attemptId)),
+  queryFn: () => getDoQuiz(attemptId),
   enabled: Boolean(attemptId),
+  retry: false,
   refetchOnWindowFocus: false,
 })
 
@@ -91,6 +95,37 @@ export const useSubmitQuiz = () => useMutation({
 
 export const useQuizResult = (attemptId: string) => useQuery({
   queryKey: ["quiz-result", attemptId],
-  queryFn: async () => body<QuizResult>(await getResult(attemptId)),
+  queryFn: () => getResult(attemptId),
   enabled: Boolean(attemptId),
+  retry: false,
+})
+
+// ---- Student Assignment Hooks ----
+import { getStudentAssignments, getStudentAssignment, type StudentAssignmentFilters } from "@/services/student/assignment.service"
+import { getStudentDashboard, getStudentPerformance } from "@/services/student/report.service"
+import type { StudentAssignmentListItem, StudentDashboardData, StudentPerformanceData } from "@/models/assignment.interface"
+
+export const useGetStudentAssignments = (filters: StudentAssignmentFilters) => useQuery({
+  queryKey: ["student-assignments", filters],
+  queryFn: () => getStudentAssignments(filters),
+})
+
+export const useGetStudentAssignment = (id: string) => useQuery({
+  queryKey: ["student-assignment", id],
+  queryFn: async () => body<StudentAssignmentListItem>(await getStudentAssignment(id)),
+  enabled: Boolean(id),
+})
+
+// ---- Student Report Hooks ----
+
+export const useGetStudentDashboard = () => useQuery({
+  queryKey: ["student-dashboard"],
+  queryFn: async () => body<StudentDashboardData>(await getStudentDashboard()),
+  staleTime: 30_000,
+})
+
+export const useGetStudentPerformance = () => useQuery({
+  queryKey: ["student-performance"],
+  queryFn: async () => body<StudentPerformanceData>(await getStudentPerformance()),
+  staleTime: 30_000,
 })

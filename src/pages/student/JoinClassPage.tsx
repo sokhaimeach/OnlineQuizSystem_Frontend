@@ -1,7 +1,12 @@
-import { BookOpen, GraduationCap, Home, Loader2, UserPlus } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  GraduationCap,
+  Home,
+  Loader2,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,24 +31,67 @@ export function JoinClassPage() {
   const joinedClasses = useJoinedClasses();
   const join = useJoinClass();
   const isStudent = Boolean(getAccessToken() && getStoredRole() === "STUDENT");
-  const redirected = useRef(false);
+  const autoJoinRan = useRef(false);
 
   const alreadyJoined =
     joinedClasses.data?.some((c) => c.id === classId) ?? false;
 
+  // Redirect unauthenticated users to registration
+  const redirectCheckDone = useRef(false);
   useEffect(() => {
     if (
       !isStudent &&
       !classInfo.isLoading &&
       !classInfo.isError &&
-      !redirected.current
+      !redirectCheckDone.current
     ) {
-      redirected.current = true;
+      redirectCheckDone.current = true;
       navigate(`/student/register?classId=${encodeURIComponent(classId)}`, {
         replace: true,
       });
     }
   }, [isStudent, classInfo.isLoading, classInfo.isError, classId, navigate]);
+
+  // Auto-join when authenticated and not already joined
+  useEffect(() => {
+    if (
+      isStudent &&
+      !classInfo.isLoading &&
+      !classInfo.isError &&
+      !joinedClasses.isLoading &&
+      !alreadyJoined &&
+      !autoJoinRan.current
+    ) {
+      autoJoinRan.current = true;
+      join.mutate(classId, {
+        onSuccess: () => {
+          navigate(`/student/join/${classId}/success`, { replace: true });
+        },
+      });
+    }
+  }, [
+    isStudent,
+    classInfo,
+    joinedClasses,
+    alreadyJoined,
+    classId,
+    join,
+    navigate,
+  ]);
+
+  // Redirect already joined students to success page
+  useEffect(() => {
+    if (
+      isStudent &&
+      !classInfo.isLoading &&
+      !joinedClasses.isLoading &&
+      alreadyJoined &&
+      !redirectCheckDone.current
+    ) {
+      redirectCheckDone.current = true;
+      navigate(`/student/join/${classId}/success`, { replace: true });
+    }
+  }, [isStudent, classInfo, joinedClasses, alreadyJoined, classId, navigate]);
 
   if (!classId) {
     return (
@@ -73,16 +121,22 @@ export function JoinClassPage() {
     return null;
   }
 
-  if (classInfo.isLoading) {
+  if (classInfo.isLoading || joinedClasses.isLoading || join.isPending) {
     return (
       <main className="grid min-h-svh place-items-center bg-muted/30 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center gap-3 p-8">
             <Loader2 className="animate-spin text-primary" />
             <div>
-              <p className="font-semibold">Loading class information…</p>
+              <p className="font-semibold">
+                {join.isPending
+                  ? "Joining class…"
+                  : "Loading class information…"}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Please wait a moment.
+                {join.isPending
+                  ? "Please wait while we add you to the class."
+                  : "Please wait a moment."}
               </p>
             </div>
           </CardContent>
@@ -118,15 +172,14 @@ export function JoinClassPage() {
     );
   }
 
-  const teacherName = classInfo.data?.teacher
-    ? [classInfo.data.teacher.first_name, classInfo.data.teacher.last_name]
+  const teacherName = classInfo.data?.teacher?.user
+    ? [
+        classInfo.data.teacher.user.first_name,
+        classInfo.data.teacher.user.last_name,
+      ]
         .filter(Boolean)
         .join(" ")
     : "Your teacher";
-  const subjectName =
-    typeof classInfo.data?.subject === "object" && classInfo.data?.subject
-      ? (classInfo.data.subject.name ?? classInfo.data.subject.subject_name)
-      : null;
 
   return (
     <main className="grid min-h-svh place-items-center bg-muted/30 p-4">
@@ -141,9 +194,6 @@ export function JoinClassPage() {
           <CardTitle className="text-xl">
             {classInfo.data?.class_name || "Class"}
           </CardTitle>
-          {subjectName && (
-            <p className="text-sm font-medium text-primary">{subjectName}</p>
-          )}
           {classInfo.data?.description && (
             <CardDescription className="mt-1 text-sm">
               {classInfo.data.description}
@@ -158,29 +208,18 @@ export function JoinClassPage() {
               <span className="font-medium text-foreground">{teacherName}</span>
             </p>
           </div>
-          {alreadyJoined && (
-            <div className="rounded-lg bg-primary/10 p-3 text-center text-sm font-medium text-primary">
-              You are already a member of this class.
-            </div>
-          )}
         </CardContent>
         <CardFooter className="flex-col gap-3">
           <Button
             className="w-full"
             size="lg"
-            disabled={join.isPending || alreadyJoined}
+            disabled={join.isPending}
             onClick={() =>
               join.mutate(classId, {
                 onSuccess: () => {
-                  toast.success("You have successfully joined the class.");
-                  navigate("/student/classes", { replace: true });
-                },
-                onError: (error: unknown) => {
-                  const message =
-                    error instanceof Error
-                      ? error.message
-                      : "This class could not be joined.";
-                  toast.error(message);
+                  navigate(`/student/join/${classId}/success`, {
+                    replace: true,
+                  });
                 },
               })
             }
@@ -188,13 +227,9 @@ export function JoinClassPage() {
             {join.isPending ? (
               <Loader2 className="animate-spin" />
             ) : (
-              <UserPlus />
+              <CheckCircle2 />
             )}
-            {join.isPending
-              ? "Joining class…"
-              : alreadyJoined
-                ? "Already joined"
-                : "Join Class"}
+            {join.isPending ? "Joining class…" : "Join Class"}
           </Button>
           {join.isError && (
             <p className="text-sm text-destructive">

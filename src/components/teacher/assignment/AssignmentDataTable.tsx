@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import { Eye, Link2, MoreHorizontal, Pencil, QrCode, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import type { ColumnDef } from "@/components/data-table"
 import { DataTable } from "@/components/data-table"
 import { StatusBadge } from "@/components/StatusBadge"
@@ -31,6 +32,14 @@ interface AssignmentTableProps {
   onEdit: (assignment: AssignmentWithQuiz) => void
   onDelete: (assignment: AssignmentWithQuiz) => void
   onShare: (assignment: AssignmentWithQuiz, mode: AssignmentShareMode) => void
+}
+
+function copyShareLink(assignment: AssignmentWithQuiz) {
+  const url = `${window.location.origin}/do-quiz/${assignment.id}`
+  navigator.clipboard.writeText(url).then(
+    () => toast.success("Link copied", { description: `Share link for "${assignment.title}" copied to clipboard.` }),
+    () => toast.error("Could not copy link"),
+  )
 }
 
 const statusVariant: Record<AssignmentStatus, "muted" | "success" | "danger" | "warning"> = {
@@ -112,7 +121,7 @@ export function AssignmentTable({
                 <Pencil /> Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => onShare(assignment, "link")}>
+              <DropdownMenuItem onSelect={() => copyShareLink(assignment)}>
                 <Link2 /> Share link
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onShare(assignment, "qr")}>

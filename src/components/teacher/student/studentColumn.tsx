@@ -1,6 +1,7 @@
 import { Eye } from "lucide-react"
 import type { ColumnDef } from "@/components/data-table"
 import { StatusBadge } from "@/components/StatusBadge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import type { StudentWithUser } from "@/models/student.interface"
 import { formatEnum } from "@/utils/student-format"
@@ -8,29 +9,30 @@ import { formatEnum } from "@/utils/student-format"
 export function studentColumns(onView: (studentId: string) => void): ColumnDef<StudentWithUser>[] {
   return [
     {
-      id: "studentId",
-      accessorFn: student => student.id ?? student.user_id,
-      header: "Student ID",
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.id ?? row.original.user_id}</span>,
-    },
-    {
-      id: "fullName",
-      accessorFn: student => `${student.user.first_name} ${student.user.last_name}`,
-      header: "Full name",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.user.first_name} {row.original.user.last_name}</span>
-      ),
+      id: "profile",
+      header: "Student",
+      cell: ({ row }) => {
+        const student = row.original
+        const initials = `${student.user.first_name[0]}${student.user.last_name[0]}`
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="size-8">
+              <AvatarImage src={student.user.avatar_url ?? undefined} alt={`${student.user.first_name} ${student.user.last_name}`} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium leading-tight">{student.user.first_name} {student.user.last_name}</p>
+              <p className="text-xs text-muted-foreground">{student.user.email}</p>
+            </div>
+          </div>
+        )
+      },
     },
     {
       accessorFn: student => student.user.gender,
       id: "gender",
       header: "Gender",
       cell: ({ row }) => formatEnum(row.original.user.gender),
-    },
-    {
-      accessorFn: student => student.user.email,
-      id: "email",
-      header: "Email",
     },
     {
       accessorFn: student => student.user.status,
