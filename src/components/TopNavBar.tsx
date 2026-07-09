@@ -8,7 +8,6 @@ import {
   User,
   Settings,
   LogOut,
-  HelpCircle,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,10 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "@/hooks/api/useUser";
+import { useLogout } from "@/hooks/api/useAuth";
+import { toast } from "sonner";
 
 const notifications = [
   {
@@ -74,6 +77,23 @@ interface TopNavBarProps {
 
 export function TopNavBar({ breadcrumb }: TopNavBarProps) {
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const account = useUser().data;
+  const logout = useLogout();
+  const user = {
+    name:
+      [account?.first_name, account?.last_name].filter(Boolean).join(" ") ||
+      "Teacher",
+    email: account?.email || "",
+    avatar: account?.avatar_url || "",
+  };
+  const initials = user.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "?";
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -96,8 +116,12 @@ export function TopNavBar({ breadcrumb }: TopNavBarProps) {
                   "truncate",
                   idx === breadcrumb.length - 1
                     ? "text-foreground font-medium"
-                    : "hover:text-foreground cursor-pointer transition-colors",
+                    : "hover:text-foreground transition-colors",
                 )}
+                onClick={item.href ? () => navigate(item.href!) : undefined}
+                role={item.href ? "link" : undefined}
+                tabIndex={item.href ? 0 : undefined}
+                onKeyDown={item.href ? (e) => { if (e.key === 'Enter') navigate(item.href!); } : undefined}
               >
                 {item.label}
               </span>
@@ -262,37 +286,40 @@ export function TopNavBar({ breadcrumb }: TopNavBarProps) {
               aria-label="User menu"
             >
               <Avatar className="h-6 w-6">
-                <AvatarImage src="/avatars/teacher.jpg" alt="Teacher" />
+                <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback className="text-[10px] bg-primary text-primary-foreground font-semibold">
-                  JD
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden sm:block text-sm font-medium max-w-24 truncate">
-                Jane Doe
+                {user.name}
               </span>
               <ChevronDown className="hidden sm:block h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={8} className="w-52">
             <DropdownMenuLabel className="pb-1">
-              <p className="font-semibold">Jane Doe</p>
+              <p className="font-semibold">{user.name}</p>
               <p className="text-xs text-muted-foreground font-normal">
-                jane.doe@school.edu
+                {user.email}
               </p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2">
+            <DropdownMenuItem className="gap-2" onSelect={() => navigate("/teacher/profile")}>
               <User className="h-4 w-4" /> My Profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2">
+            <DropdownMenuItem className="gap-2" onSelect={() => navigate("/teacher/settings")}>
               <Settings className="h-4 w-4" /> Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2">
-              <HelpCircle className="h-4 w-4" /> Help & Support
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive">
-              <LogOut className="h-4 w-4" /> Log Out
+            <DropdownMenuItem
+              className="gap-2 text-destructive focus:text-destructive"
+              disabled={logout.isPending}
+              onSelect={() => logout.mutate(undefined, {
+                onError: () => toast.error('Could not log out. Please try again.'),
+              })}
+            >
+              <LogOut className="h-4 w-4" /> {logout.isPending ? "Logging out…" : "Log Out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

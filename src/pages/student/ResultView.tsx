@@ -1,12 +1,17 @@
 import {
   AlertCircle,
   ArrowLeft,
+  BookOpen,
   CalendarClock,
   CheckCircle2,
   Clock3,
+  GraduationCap,
+  Hourglass,
   Loader2,
   Target,
+  TimerOff,
   Trophy,
+  User,
   XCircle,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -19,6 +24,7 @@ import type {
   ResultWithAnswers,
   ResultSummary,
   ResultUnavailable,
+  TimeoutResult,
 } from "@/models/attempt.interface";
 import { formatDateTime } from "@/utils/student-format";
 
@@ -39,6 +45,7 @@ export function StudentResultView() {
 
   const rawData = query.data as { data?: unknown } | undefined;
   const result = rawData?.data as
+    | TimeoutResult
     | ResultUnavailable
     | ResultSummary
     | ResultWithAnswers
@@ -70,6 +77,13 @@ export function StudentResultView() {
           </Button>
         </div>
       </main>
+    );
+  }
+
+  // --- TIMEOUT with no submission ---
+  if ("timeout" in result && result.timeout) {
+    return (
+      <TimeoutSummary result={result as TimeoutResult} navigate={navigate} />
     );
   }
 
@@ -204,6 +218,169 @@ export function StudentResultView() {
         <QuestionReviewSection result={detailed} />
       )}
     </main>
+  );
+}
+
+function TimeoutSummary({
+  result,
+  navigate,
+}: {
+  result: TimeoutResult;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const { assignment, quiz, attempt } = result;
+  const durationMinutes = quiz?.duration_minutes ?? 0;
+  const graceMs = assignment?.allow_late_submission ? 24 * 60 * 60 * 1000 : 0;
+  const effectiveDue = new Date(
+    new Date(assignment.due_date).getTime() + graceMs,
+  );
+  const now = new Date();
+  const withinGrace = assignment?.allow_late_submission && effectiveDue > now;
+
+  return (
+    <main className="mx-auto max-w-2xl space-y-5 py-6">
+      <Button variant="ghost" onClick={() => navigate(-1)}>
+        <ArrowLeft /> Back
+      </Button>
+
+      <Card className="overflow-hidden">
+        <div className="h-2 bg-destructive" />
+        <CardContent className="py-8 text-center">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-destructive/10 text-destructive">
+            <TimerOff className="size-8" />
+          </span>
+          <Badge className="mt-4" variant="destructive">
+            Timed Out
+          </Badge>
+          <h1 className="mt-3 text-2xl font-bold">
+            {assignment?.title ?? "Assignment"}
+          </h1>
+          <p className="text-muted-foreground">{quiz?.title ?? ""}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <AlertCircle className="size-4 text-destructive" />
+            Why was this attempt marked as timed out?
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {result.timeout_reason}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Attempt Details</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <DetailRow
+            icon={GraduationCap}
+            label="Class"
+            value={assignment?.class?.class_name ?? "—"}
+          />
+          <DetailRow
+            icon={User}
+            label="Student"
+            value={attempt?.guest_name ?? "You"}
+          />
+          <DetailRow
+            icon={Clock3}
+            label="Started"
+            value={formatDateTime(attempt.started_at)}
+          />
+          <DetailRow
+            icon={TimerOff}
+            label="Timed out at"
+            value={formatDateTime(attempt.submitted_at)}
+          />
+          {durationMinutes > 0 && (
+            <DetailRow
+              icon={Hourglass}
+              label="Time limit"
+              value={`${durationMinutes} min`}
+            />
+          )}
+          <DetailRow
+            icon={BookOpen}
+            label="Due"
+            value={formatDateTime(assignment.due_date)}
+          />
+          <DetailRow icon={TimerOff} label="Attempt status" value="TIMEOUT" />
+        </CardContent>
+      </Card>
+
+      {withinGrace && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                Late submission period still open
+              </p>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                This assignment allows late submissions. The grace period ends{" "}
+                {formatDateTime(effectiveDue)}. Please contact your teacher if
+                you need to complete this assignment.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!withinGrace && (
+        <Card className="border-muted">
+          <CardContent className="flex items-start gap-3 py-4">
+            <TimerOff className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="font-medium">Attempt permanently closed</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This attempt has been closed and can no longer be continued or
+                submitted.
+                {assignment?.allow_late_submission &&
+                  " The late submission grace period has also expired."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex justify-center gap-3">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/student/assignments")}
+        >
+          View assignments
+        </Button>
+        <Button onClick={() => navigate(-1)}>Go back</Button>
+      </div>
+    </main>
+  );
+}
+
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Clock3;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border p-3">
+      <span className="rounded-md bg-muted p-1.5 text-muted-foreground">
+        <Icon className="size-4" />
+      </span>
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium">{value}</p>
+      </div>
+    </div>
   );
 }
 

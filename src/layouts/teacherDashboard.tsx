@@ -9,6 +9,9 @@ import { AppSidebar, type DashboardSection } from "@/components/app-sidebar";
 import { TopNavBar } from "@/components/TopNavBar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { useGetClassById } from "@/hooks/api/useClass";
+import { useGetSubjectOptions } from "@/hooks/api/useSubject";
+import { useGetStudentById } from "@/hooks/api/useStudent";
 
 export interface TeacherDashboardOutletContext {
   onNavigate: (section: DashboardSection) => void;
@@ -23,13 +26,13 @@ const sectionBreadcrumb: Record<
   "class-detail": [
     { label: "Teaching" },
     { label: "Classes" },
-    { label: "Class 10-A" },
+    { label: "Loading..." },
   ],
   subjects: [{ label: "Teaching" }, { label: "Subjects" }],
   "subject-detail": [
     { label: "Teaching" },
     { label: "Subjects" },
-    { label: "Mathematics" },
+    { label: "Loading..." },
   ],
   "create-quiz": [{ label: "Content" }, { label: "Create Quiz" }],
   "question-bank": [{ label: "Content" }, { label: "Question Bank" }],
@@ -65,6 +68,26 @@ export default function TeacherDashboard() {
 
   const currentRoute =
     location.pathname.replace(/^\/teacher\/?/, "") || "dashboard";
+
+  const routeParts = currentRoute.split("/");
+  const classId = currentRoute.startsWith("classes/") ? routeParts[1] : undefined;
+  const subjectId = currentRoute.startsWith("subjects/") ? routeParts[1] : undefined;
+  const studentId = currentRoute.startsWith("students/") ? routeParts[1] : undefined;
+
+  const classQuery = useGetClassById(classId || "");
+  const subjectOptionsQuery = useGetSubjectOptions();
+  const studentQuery = useGetStudentById(studentId || "");
+
+  const className = classQuery.data?.class_name;
+  const subjectName = subjectOptionsQuery.data?.find(
+    (s) => s.id === subjectId,
+  )?.subject_name;
+  const studentName = studentQuery.data
+    ? [studentQuery.data.user.first_name, studentQuery.data.user.last_name]
+        .filter(Boolean)
+        .join(" ")
+    : undefined;
+
   const activeSection = currentRoute.startsWith("subjects/")
     ? "subject-detail"
     : currentRoute.startsWith("classes/") ||
@@ -74,18 +97,32 @@ export default function TeacherDashboard() {
       ? "class-detail"
       : (routeToSection[currentRoute] ?? "dashboard");
   const breadcrumb = useMemo(() => {
+    if (currentRoute.startsWith("classes/")) {
+      return [
+        { label: "Teaching" },
+        { label: "Classes", href: "/teacher/classes" },
+        { label: className || "Class" },
+      ];
+    }
+    if (currentRoute.startsWith("subjects/")) {
+      return [
+        { label: "Teaching" },
+        { label: "Subjects", href: "/teacher/subjects" },
+        { label: subjectName || "Subject" },
+      ];
+    }
     if (currentRoute.startsWith("students/")) {
       return [
         { label: "Teaching" },
         { label: "Classes" },
-        { label: "Student detail" },
+        { label: studentName || "Student"},
       ];
     }
     if (currentRoute.startsWith("attempts/")) {
       return [
         { label: "Teaching" },
         { label: "Students" },
-        { label: "Attempt detail" },
+        { label: "Attempt" },
       ];
     }
     if (currentRoute.startsWith("assignments/")) {
@@ -96,7 +133,7 @@ export default function TeacherDashboard() {
       ];
     }
     return sectionBreadcrumb[activeSection];
-  }, [activeSection, currentRoute]);
+  }, [activeSection, currentRoute, className, subjectName, studentName]);
 
   const handleNavigate = (section: DashboardSection) => {
     navigate(`/teacher/${sectionToRoute[section]}`);
@@ -110,7 +147,7 @@ export default function TeacherDashboard() {
         <SidebarInset className="flex flex-col min-h-svh overflow-hidden">
           <TopNavBar breadcrumb={breadcrumb} />
           <main className="flex-1 overflow-auto">
-            <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+            <div className="p-4 sm:p-6 max-w-350 mx-auto">
               <Outlet context={{ onNavigate: handleNavigate }} />
             </div>
           </main>

@@ -59,8 +59,6 @@ export interface UpdateUserAndStudentPayload extends Omit<
 export interface StudentProfile {
     id?: string;
     user_id?: string;
-    student_code?: string;
-    school_name?: string;
     date_of_birth?: string;
     phone_number?: string;
     parent_phone_number?: string;

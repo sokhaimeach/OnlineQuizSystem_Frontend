@@ -25,6 +25,7 @@ import {
   useReportUpcomingDeadlines,
 } from "@/hooks/api/useAnalytics";
 import { useGetRecentClasses } from "@/hooks/api/useClass";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardOverviewProps {
   onNavigate: (section: DashboardSection) => void;
@@ -73,6 +74,7 @@ const activityColors: Record<string, string> = {
 };
 
 export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
+  const navigate = useNavigate();
   const summaryQuery = useDashboardSummary();
   const recentClassesQuery = useGetRecentClasses();
   const recentActivityQuery = useReportActivity();
@@ -248,7 +250,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
               {recentClasses.map((cls, idx) => (
                 <button
                   key={cls.id}
-                  onClick={() => onNavigate("class-detail")}
+                  onClick={() => navigate(`/teacher/classes/${cls.id}`)}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
                 >
                   <div

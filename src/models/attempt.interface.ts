@@ -44,6 +44,9 @@ export interface QuizSessionData {
         title: string;
         total_score: string;
         total_question: number;
+        due_date: string;
+        allow_late_submission: boolean;
+        class: { id: string; class_name: string } | null;
         quiz: {
             id: string;
             title: string;
@@ -198,4 +201,33 @@ export interface ResultWithAnswers {
     }
 }
 
-export type QuizResult = ResultUnavailable | ResultSummary | ResultWithAnswers
+export interface TimeoutResult {
+    timeout: true
+    result_available: true
+    status: "TIMEOUT"
+    timeout_reason: string
+    assignment: {
+        id: string
+        title: string
+        due_date: string
+        total_score: string
+        total_question: number
+        allow_late_submission: boolean
+        class: { id: string; class_name: string } | null
+    }
+    quiz: {
+        id: string
+        title: string
+        duration_minutes: number
+    }
+    attempt: {
+        id: string
+        student_id: string | null
+        guest_name: string | null
+        status: "TIMEOUT"
+        started_at: string
+        submitted_at: string | null
+    }
+}
+
+export type QuizResult = TimeoutResult | ResultUnavailable | ResultSummary | ResultWithAnswers

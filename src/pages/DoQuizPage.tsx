@@ -1,9 +1,12 @@
 import {
   AlarmClock,
   AlertCircle,
+  BookOpen,
   CheckCircle2,
   ClipboardList,
   Clock,
+  GraduationCap,
+  Hourglass,
   Loader2,
   Send,
   TimerOff,
@@ -38,8 +41,9 @@ import {
 } from "@/hooks/api/useStudent";
 import { cn } from "@/lib/utils";
 import { getStoredRole } from "@/utils/authRole";
-import { getAccessToken, setAccessToken } from "@/utils/tokenStorage";
-import type { AttemptState } from "@/models/attempt.interface";
+import { getAccessToken } from "@/utils/tokenStorage";
+import { formatDateTime } from "@/utils/student-format";
+import type { AttemptState, QuizSessionData } from "@/models/attempt.interface";
 import type { QuestionWithOptions } from "@/models/quiz.interface";
 
 type PageState =
@@ -375,19 +379,7 @@ function QuizSession({
 
   // Parse the raw response - unwrap the Axios data
   const rawData = query.data as { data?: unknown } | undefined;
-  const sessionData = rawData?.data as
-    | {
-        status?: string;
-        canSubmit?: boolean;
-        canViewResult?: boolean;
-        redirect?: string;
-        message?: string;
-        assignment?: {
-          quiz?: { title?: string; questions?: unknown[] };
-          title?: string;
-        };
-      }
-    | undefined;
+  const sessionData = rawData?.data as QuizSessionData | undefined;
 
   const isFinished =
     sessionData?.status === "SUBMITTED" || sessionData?.status === "TIMEOUT";
@@ -422,18 +414,16 @@ function QuizSession({
     return sessionData.assignment.quiz.questions as QuestionWithOptions[];
   }, [sessionData]);
 
+  const assignment = sessionData?.assignment;
+  const quiz = assignment?.quiz;
+  const durationMinutes = quiz?.duration_minutes ?? 0;
+
   // Timer
   useEffect(() => {
-    if (
-      !sessionData?.assignment?.quiz?.duration_minutes ||
-      !("started_at" in (sessionData ?? {}))
-    )
-      return;
-    const startedAt = new Date(
-      (sessionData as { started_at?: string }).started_at ?? "",
-    ).getTime();
+    if (!durationMinutes || !sessionData?.started_at) return;
+    const startedAt = new Date(sessionData.started_at).getTime();
     if (!startedAt) return;
-    const durMs = (sessionData.assignment.quiz.duration_minutes ?? 0) * 60_000;
+    const durMs = durationMinutes * 60_000;
     const deadline = startedAt + durMs;
 
     const tick = () =>
@@ -441,7 +431,7 @@ function QuizSession({
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [sessionData]);
+  }, [sessionData, durationMinutes]);
 
   // Auto-submit on time expiry
   useEffect(() => {
@@ -487,8 +477,8 @@ function QuizSession({
   if (timedOut) {
     return (
       <TimeoutScreen
-        assignmentTitle={sessionData?.assignment?.title ?? ""}
-        quizTitle={sessionData?.assignment?.quiz?.title ?? ""}
+        assignmentTitle={assignment?.title ?? ""}
+        quizTitle={quiz?.title ?? ""}
       />
     );
   }
@@ -507,7 +497,7 @@ function QuizSession({
   }
 
   if (query.isError || !questions.length) {
-    if (isUnavailable || isFinished) return null; // already handled by useEffect
+    if (isUnavailable || isFinished) return null;
     return (
       <UnavailableScreen
         message={
@@ -538,52 +528,84 @@ function QuizSession({
           isLowTime ? "bg-destructive/5 border-destructive/20" : "bg-card/95",
         )}
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">
-              {sessionData?.assignment?.quiz?.title ?? ""}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {answeredCount}/{totalQuestions} answered
-            </p>
-          </div>
-          {timeDisplay && (
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-sm font-bold",
-                isLowTime
-                  ? "border-destructive/40 bg-destructive/10 text-destructive"
-                  : "border-border",
-              )}
-            >
-              {isLowTime ? (
-                <AlarmClock className="size-4" />
-              ) : (
-                <Clock className="size-4" />
-              )}
-              {timeDisplay}
+        <div className="mx-auto max-w-4xl px-4 py-2.5">
+          {/* Top row: quiz title + timer + submit */}
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">
+                {quiz?.title ?? ""}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {assignment?.title ?? ""} · {answeredCount}/{totalQuestions}{" "}
+                answered
+              </p>
             </div>
-          )}
-          {totalQuestions > 0 && (
-            <div className="hidden w-24 sm:block">
-              <Progress
-                value={(answeredCount / totalQuestions) * 100}
-                className={cn("h-2", isLowTime && "bg-destructive/20")}
-              />
-            </div>
-          )}
-          <Button
-            size="sm"
-            disabled={submit.isPending}
-            onClick={() => setConfirm(true)}
-          >
-            {submit.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Send className="size-4" />
+            {timeDisplay && (
+              <div
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-sm font-bold",
+                  isLowTime
+                    ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    : "border-border",
+                )}
+              >
+                {isLowTime ? (
+                  <AlarmClock className="size-4" />
+                ) : (
+                  <Clock className="size-4" />
+                )}
+                {timeDisplay}
+              </div>
             )}
-            <span className="hidden sm:inline ml-1">Submit</span>
-          </Button>
+            {totalQuestions > 0 && (
+              <div className="hidden w-20 sm:block">
+                <Progress
+                  value={(answeredCount / totalQuestions) * 100}
+                  className={cn("h-2", isLowTime && "bg-destructive/20")}
+                />
+              </div>
+            )}
+            <Button
+              size="sm"
+              disabled={submit.isPending}
+              onClick={() => setConfirm(true)}
+            >
+              {submit.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              <span className="hidden sm:inline ml-1">Submit</span>
+            </Button>
+          </div>
+          {/* Info row: class, due date, time limit */}
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
+            {assignment?.class && (
+              <span className="flex items-center gap-1">
+                <GraduationCap className="size-3" />
+                {assignment.class.class_name}
+              </span>
+            )}
+            {assignment?.due_date && (
+              <span className="flex items-center gap-1">
+                <BookOpen className="size-3" />
+                Due {formatDateTime(assignment.due_date)}
+              </span>
+            )}
+            {durationMinutes > 0 && (
+              <span className="flex items-center gap-1">
+                <Hourglass className="size-3" />
+                {durationMinutes} min limit
+              </span>
+            )}
+            {sessionData?.status && (
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                {sessionData.status === "IN_PROGRESS"
+                  ? "In progress"
+                  : sessionData.status}
+              </span>
+            )}
+          </div>
         </div>
       </header>
 

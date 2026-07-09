@@ -83,7 +83,7 @@ function App() {
               <Route path='dashboard' element={<DashboardRoute />} />
               <Route path='classes' element={<ClassesView />} />
               <Route path='classes/:classId' element={<ClassDetailRoute />} />
-              <Route path='class-detail' element={<Navigate to='../classes/1' replace />} />
+
               <Route path='students/:id' element={<StudentDetailView />} />
               <Route path='attempts/:id' element={<AttemptDetailView />} />
               <Route path='assignments/:assignmentId/attempts' element={<AssignmentAttemptsView />} />

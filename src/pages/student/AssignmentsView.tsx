@@ -114,9 +114,15 @@ export function StudentAssignmentsView() {
                 In Progress
               </StatusBadge>
             );
+          if (attempt.status === "TIMEOUT")
+            return (
+              <StatusBadge variant="danger" dot>
+                Timed Out
+              </StatusBadge>
+            );
           return (
             <StatusBadge variant="success" dot>
-              Completed
+              Submitted
             </StatusBadge>
           );
         },

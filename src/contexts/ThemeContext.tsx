@@ -17,7 +17,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('teacher-dashboard-theme') as Theme | null
+      const stored = localStorage.getItem('app-theme') as Theme | null
       if (stored) return stored
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
     }
@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.remove('dark')
     }
-    localStorage.setItem('teacher-dashboard-theme', theme)
+    localStorage.setItem('app-theme', theme)
   }, [theme])
 
   const setTheme = (t: Theme) => setThemeState(t)

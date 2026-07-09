@@ -1,21 +1,27 @@
-import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
-import type { ColumnDef } from "@/components/data-table"
-import { StatusBadge } from "@/components/StatusBadge"
-import { Button } from "@/components/ui/button"
+import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import type { ColumnDef } from "@/components/data-table";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { QuizListItem } from "@/models/quiz.interface"
-import { formatDateTime } from "@/utils/student-format"
+} from "@/components/ui/dropdown-menu";
+import type { QuizListItem, QuizStatus } from "@/models/quiz.interface";
+import { formatDateTime, formatEnum } from "@/utils/student-format";
+
+const statusVariant: Record<QuizStatus, "muted" | "success" | "warning"> = {
+  DRAFT: "muted",
+  PUBLISHED: "success",
+  ARCHIVED: "warning",
+};
 
 interface QuizColumnActions {
-  onView: (quiz: QuizListItem) => void
-  onEdit: (quiz: QuizListItem) => void
-  onDelete: (quiz: QuizListItem) => void
+  onView: (quiz: QuizListItem) => void;
+  onEdit: (quiz: QuizListItem) => void;
+  onDelete: (quiz: QuizListItem) => void;
 }
 
 export function quizTableColumns({
@@ -47,41 +53,59 @@ export function quizTableColumns({
     {
       accessorKey: "question_count",
       header: "Questions",
-      cell: ({ row }) => <span className="tabular-nums">{row.original.question_count}</span>,
+      cell: ({ row }) => (
+        <span className="tabular-nums">{row.original.question_count}</span>
+      ),
     },
     {
       accessorKey: "assignment_count",
       header: "Assignments",
-      cell: ({ row }) => <span className="tabular-nums">{row.original.assignment_count ?? "—"}</span>,
+      cell: ({ row }) => (
+        <span className="tabular-nums">
+          {row.original.assignment_count ?? "—"}
+        </span>
+      ),
     },
     {
       accessorKey: "total_score",
       header: "Total Score",
-      cell: ({ row }) => <span className="tabular-nums">{row.original.total_score}</span>,
+      cell: ({ row }) => (
+        <span className="tabular-nums">{row.original.total_score}</span>
+      ),
     },
     {
       accessorKey: "passing_score",
       header: "Passing",
-      cell: ({ row }) => <span className="tabular-nums">{row.original.passing_score}%</span>,
+      cell: ({ row }) => (
+        <span className="tabular-nums">{row.original.passing_score}%</span>
+      ),
     },
     {
       accessorKey: "duration_minutes",
       header: "Duration",
-      cell: ({ row }) => <span className="whitespace-nowrap">{row.original.duration_minutes} min</span>,
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap">
+          {row.original.duration_minutes} min
+        </span>
+      ),
     },
     {
-      accessorKey: "is_public",
-      header: "Visibility",
+      accessorKey: "status",
+      header: "Status",
       cell: ({ row }) => (
-        <StatusBadge variant={row.original.is_public ? "success" : "muted"} dot>
-          {row.original.is_public ? "Published" : "Draft"}
+        <StatusBadge variant={statusVariant[row.original.status]} dot>
+          {formatEnum(row.original.status)}
         </StatusBadge>
       ),
     },
     {
       accessorKey: "createdAt",
       header: "Created",
-      cell: ({ row }) => <span className="whitespace-nowrap">{formatDateTime(row.original.createdAt)}</span>,
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap">
+          {formatDateTime(row.original.createdAt)}
+        </span>
+      ),
     },
     {
       id: "actions",
@@ -90,7 +114,11 @@ export function quizTableColumns({
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${row.original.title}`}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Actions for ${row.original.title}`}
+            >
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
@@ -102,12 +130,15 @@ export function quizTableColumns({
               <Pencil /> Edit quiz
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => onDelete(row.original)}>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => onDelete(row.original)}
+            >
               <Trash2 /> Delete quiz
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
     },
-  ]
+  ];
 }

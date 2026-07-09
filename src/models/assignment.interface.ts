@@ -77,15 +77,24 @@ export interface StudentDashboardData {
         status: "IN_PROGRESS" | "SUBMITTED" | "TIMEOUT"
         assignment_id: string
     }[]
-    upcoming_assignments: {
-        id: string
-        title: string
-        start_date: string
-        due_date: string
-        status: "UPCOMING"
-        class: { id: string; class_name: string } | null
-        quiz: { id: string; title: string; duration_minutes: number } | null
-    }[]
+    upcoming_assignments: DashboardAssignmentItem[]
+    active_assignments_list: DashboardActiveAssignment[]
+}
+
+export interface DashboardAssignmentItem {
+    id: string
+    title: string
+    start_date: string
+    due_date: string
+    status: "ACTIVE" | "UPCOMING"
+    class: { id: string; class_name: string } | null
+    quiz: { id: string; title: string; duration_minutes: number } | null
+}
+
+export interface DashboardActiveAssignment extends DashboardAssignmentItem {
+    total_question: number
+    remaining_seconds: number
+    attempt: { id: string; status: "IN_PROGRESS" } | null
 }
 
 export interface StudentPerformanceData {

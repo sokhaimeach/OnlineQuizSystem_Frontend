@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   Clock,
   GraduationCap,
-  Loader2,
+  ListChecks,
   Play,
   Trophy,
 } from "lucide-react";
@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetStudentDashboard } from "@/hooks/api/useStudent";
-import { formatDateTime } from "@/utils/student-format";
+import { formatDateTime, formatDuration } from "@/utils/student-format";
+import type { DashboardActiveAssignment } from "@/models/assignment.interface";
 
 export function StudentDashboardView() {
   const dashboard = useGetStudentDashboard();
@@ -67,10 +68,6 @@ export function StudentDashboardView() {
   }
 
   const data = dashboard.data;
-  const inProgressAttempts =
-    data?.recent_attempts?.filter((a) => a.status === "IN_PROGRESS") ?? [];
-  const recentAttempts =
-    data?.recent_attempts?.filter((a) => a.status !== "IN_PROGRESS") ?? [];
 
   return (
     <div className="space-y-6">
@@ -143,47 +140,10 @@ export function StudentDashboardView() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          {inProgressAttempts.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Play className="size-4 text-primary" /> Continue Quiz
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {inProgressAttempts.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 rounded-lg border p-3"
-                  >
-                    <span className="rounded-lg bg-primary/10 p-2 text-primary">
-                      <Clock className="size-4" />
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-medium">{a.quiz_title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {a.class_name}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        const token = localStorage.getItem("x_attempt_token");
-                        navigate(
-                          `/do-quiz/${a.assignment_id}`,
-                          token
-                            ? { state: { attemptToken: token } }
-                            : undefined,
-                        );
-                      }}
-                    >
-                      <Play /> Continue
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <ContinueAssignmentCard
+            assignments={data?.active_assignments_list}
+            navigate={navigate}
+          />
 
           <Card>
             <CardHeader>
@@ -246,12 +206,12 @@ export function StudentDashboardView() {
               <CardTitle>Recent Attempts</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!recentAttempts.length ? (
+              {!data?.recent_attempts?.length ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   No attempts yet.
                 </p>
               ) : (
-                recentAttempts.slice(0, 5).map((a) => (
+                data.recent_attempts.map((a) => (
                   <div
                     key={a.id}
                     className="flex items-center gap-3 rounded-lg border p-3"
@@ -268,9 +228,15 @@ export function StudentDashboardView() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold">
-                        {a.score != null ? `${a.score}%` : "—"}
-                      </p>
+                      {a.status === "TIMEOUT" ? (
+                        <p className="text-xs font-semibold text-destructive">
+                          Timed Out
+                        </p>
+                      ) : (
+                        <p className="text-sm font-bold">
+                          {a.score != null ? `${a.score}%` : "—"}
+                        </p>
+                      )}
                       <p className="text-[10px] text-muted-foreground">
                         {formatDateTime(a.submitted_at)}
                       </p>
@@ -283,5 +249,67 @@ export function StudentDashboardView() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ContinueAssignmentCard({
+  assignments,
+  navigate,
+}: {
+  assignments: DashboardActiveAssignment[] | undefined;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Play className="size-4 text-primary" /> Continue Assignment
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {!assignments?.length ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No active assignments right now.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {assignments.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 rounded-lg border p-3"
+              >
+                <span className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <Clock className="size-4" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{a.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.class?.class_name ?? ""}
+                    {a.quiz && <> · {a.quiz.title}</>}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <ListChecks className="size-3" />
+                      {a.total_question} question
+                      {a.total_question !== 1 ? "s" : ""}
+                    </span>
+                    <span>{formatDuration(a.remaining_seconds)} remaining</span>
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => navigate(`/do-quiz/${a.id}`)}>
+                  {a.attempt ? (
+                    <>
+                      <Play /> Continue
+                    </>
+                  ) : (
+                    "Start"
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

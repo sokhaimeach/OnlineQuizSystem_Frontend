@@ -424,6 +424,9 @@ export function AppSidebar({
       <SidebarContent className="gap-0">
         {/* Dashboard */}
         <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/60 px-3 py-1.5">
+            Overview
+          </SidebarGroupLabel>
           <SidebarMenu>
             <NavItem
               icon={LayoutDashboard}
@@ -746,27 +749,7 @@ export function AppSidebar({
       {/* Footer — Profile */}
       <SidebarFooter className="border-t border-sidebar-border pt-2">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="My Profile"
-              onClick={() => onNavigate("profile")}
-              className={cn(
-                "cursor-pointer transition-colors",
-                (activeSection === "profile" || activeSection === "settings") &&
-                  "text-primary font-medium bg-primary/10",
-              )}
-            >
-              <UserCircle
-                className={cn(
-                  "h-4 w-4",
-                  activeSection === "profile" || activeSection === "settings"
-                    ? "text-primary"
-                    : "text-muted-foreground",
-                )}
-              />
-              <span>Profile</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <SidebarMenuItem></SidebarMenuItem>
         </SidebarMenu>
         <NavUser user={user} />
       </SidebarFooter>

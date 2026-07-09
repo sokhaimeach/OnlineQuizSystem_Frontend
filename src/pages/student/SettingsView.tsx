@@ -1,4 +1,13 @@
-import { Camera, KeyRound, Loader2, Save, Settings } from "lucide-react";
+import {
+  Camera,
+  KeyRound,
+  Loader2,
+  Moon,
+  Save,
+  Settings,
+  Sun,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useChangePassword } from "@/hooks/api/useAuth";
 import {
   useChangeUserImage,
@@ -45,9 +56,12 @@ export function StudentSettingsView() {
   const update = useUpdateStudentAccount();
   const image = useChangeUserImage();
   const password = useChangePassword();
+  const { theme, setTheme } = useTheme();
   const input = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(blank);
   const [passwords, setPasswords] = useState(blankPassword);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (account.data)
       setForm({
@@ -60,10 +74,12 @@ export function StudentSettingsView() {
         parent_phone_number: account.data.student?.parent_phone_number ?? "",
       });
   }, [account.data]);
+
   const set = <K extends keyof UpdateUserAndStudentPayload>(
     key: K,
     value: UpdateUserAndStudentPayload[K],
   ) => setForm((old) => ({ ...old, [key]: value }));
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!form.first_name.trim() || !form.last_name.trim())
@@ -73,6 +89,7 @@ export function StudentSettingsView() {
       onError: () => toast.error("Profile could not be updated."),
     });
   };
+
   const submitPassword = (e: FormEvent) => {
     e.preventDefault();
     if (passwords.new_password.length < 8)
@@ -87,15 +104,33 @@ export function StudentSettingsView() {
       onError: () => toast.error("Password could not be changed."),
     });
   };
-  const upload = (file?: File) => {
+
+  const handleFileSelect = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/"))
       return toast.error("Choose an image file.");
+    setPreviewUrl(URL.createObjectURL(file));
     image.mutate(file, {
-      onSuccess: () => toast.success("Avatar updated."),
-      onError: () => toast.error("Avatar upload failed."),
+      onSuccess: () => {
+        setPreviewUrl(null);
+        toast.success("Avatar updated.");
+      },
+      onError: () => {
+        setPreviewUrl(null);
+        toast.error("Avatar upload failed.");
+      },
     });
   };
+
+  const handleRemoveAvatar = () => {
+    // Re-upload an empty/deleted image is backend-dependent;
+    // for now just notify the user. A dedicated delete endpoint
+    // would be needed for full removal.
+    toast.info("To remove your avatar, upload a new image or contact support.");
+  };
+
+  const currentSrc = previewUrl ?? account.data?.avatar_url ?? undefined;
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
@@ -103,9 +138,11 @@ export function StudentSettingsView() {
           <Settings className="text-primary" /> Settings
         </h1>
         <p className="text-muted-foreground">
-          Manage your profile, avatar, and password.
+          Manage your profile, avatar, password, and appearance.
         </p>
       </div>
+
+      {/* Profile */}
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
@@ -114,7 +151,7 @@ export function StudentSettingsView() {
           <form className="space-y-5" onSubmit={submit}>
             <div className="flex items-center gap-4 rounded-lg border p-4">
               <Avatar className="size-20">
-                <AvatarImage src={account.data?.avatar_url ?? undefined} />
+                <AvatarImage src={currentSrc} />
                 <AvatarFallback>
                   {account.data?.first_name?.[0] ?? "S"}
                 </AvatarFallback>
@@ -129,18 +166,37 @@ export function StudentSettingsView() {
                   className="hidden"
                   type="file"
                   accept="image/*"
-                  onChange={(e) => upload(e.target.files?.[0])}
+                  onChange={(e) => handleFileSelect(e.target.files?.[0])}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={image.isPending}
-                  onClick={() => input.current?.click()}
-                >
-                  <Camera /> Change avatar
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={image.isPending}
+                    onClick={() => input.current?.click()}
+                  >
+                    {image.isPending ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Camera />
+                    )}
+                    {image.isPending ? "Uploading…" : "Change"}
+                  </Button>
+                  {account.data?.avatar_url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                    >
+                      <Trash2 /> Remove
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="First name">
                 <Input
@@ -198,6 +254,7 @@ export function StudentSettingsView() {
                 </Field>
               </div>
             </div>
+
             <div className="flex justify-end">
               <Button disabled={update.isPending}>
                 {update.isPending ? (
@@ -211,6 +268,8 @@ export function StudentSettingsView() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Change password */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -263,9 +322,53 @@ export function StudentSettingsView() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4 rounded-md border p-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-md bg-primary/10 p-2 text-primary">
+                {theme === "dark" ? (
+                  <Moon className="size-5" />
+                ) : (
+                  <Sun className="size-5" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium">
+                  {theme === "dark" ? "Dark Mode" : "Light Mode"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Switch between light and dark appearance.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={theme === "dark"}
+              aria-label="Toggle dark mode"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="relative h-6 w-11 shrink-0 rounded-full bg-muted ring-1 ring-border transition-colors aria-checked:bg-primary"
+            >
+              <span
+                className={cn(
+                  "absolute left-0.5 top-0.5 size-5 rounded-full bg-background shadow-sm transition-transform",
+                  theme === "dark" && "translate-x-5",
+                )}
+              />
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
 function Field({
   label,
   children,

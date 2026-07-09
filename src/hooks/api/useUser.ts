@@ -54,6 +54,7 @@ export const useChangeUserImage = () => {
     mutationFn: changeUserImage,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["teacher-account"] })
+      void queryClient.invalidateQueries({ queryKey: ["student-account"] })
     },
   })
 }
