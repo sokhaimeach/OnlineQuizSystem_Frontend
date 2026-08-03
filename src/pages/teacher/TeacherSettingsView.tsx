@@ -3,6 +3,7 @@ import { KeyRound, Loader2, Moon, Settings, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { ProfileForm } from "@/components/teacher/account/ProfileForm";
+import { TwoFactorSecurityCard } from "@/components/account/TwoFactorSecurityCard";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -170,6 +171,8 @@ export function TeacherSettingsView() {
           </form>
         </CardContent>
       </Card>
+
+      <TwoFactorSecurityCard enabled={!!accountQuery.data?.two_factor_enabled} />
 
       <Card>
         <CardHeader className="border-b">

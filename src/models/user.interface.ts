@@ -10,6 +10,8 @@ export interface User {
     bio: string;
     avatar_url: string | null;
     public_id: string | null;
+    two_factor_enabled?: boolean;
+    two_factor_enabled_at?: string | null;
 }
 
 export interface TeacherProfile {

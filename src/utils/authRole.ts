@@ -50,6 +50,24 @@ export function getAccessTokenFromAuthPayload(payload: unknown): string | null {
   return nested
 }
 
+export function requiresTwoFactor(payload: unknown): boolean {
+  if (!isRecord(payload)) return false
+
+  return payload.requires2FA === true
+    || (isRecord(payload.data) && payload.data.requires2FA === true)
+}
+
+export function getTemporaryTokenFromAuthPayload(payload: unknown): string | null {
+  if (!isRecord(payload)) return null
+
+  const token = payload.temporaryToken
+    ?? (isRecord(payload.data) ? payload.data.temporaryToken : null)
+  if (typeof token === "string" && token.length > 0) return token
+
+  const nested: string | null = getTemporaryTokenFromAuthPayload(payload.data)
+  return nested
+}
+
 function parseJwtPayload(token: string | null): unknown {
   if (!token) return null
   try {

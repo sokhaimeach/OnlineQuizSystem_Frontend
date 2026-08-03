@@ -1,8 +1,12 @@
 import api from "@/lib/axios"
-import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterAsStudentPayload, RegisterPayload } from "@/models/auth.interface"
+import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterAsStudentPayload, RegisterPayload, TwoFactorLoginPayload } from "@/models/auth.interface"
 
 export const login = async (payload: LoginPayload) => {
     return api.post<AuthResponse>('/auth/login', payload) as unknown as Promise<AuthResponse>
+}
+
+export const verifyTwoFactorLogin = async (payload: TwoFactorLoginPayload) => {
+    return api.post<AuthResponse>('/auth/login/verify-2fa', payload) as unknown as Promise<AuthResponse>
 }
 
 export const registerAsTeacher = async (payload: RegisterPayload) => {

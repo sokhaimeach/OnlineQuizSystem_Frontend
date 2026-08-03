@@ -5,6 +5,23 @@ export interface LoginPayload {
     password: string
 }
 
+export interface TwoFactorLoginPayload {
+    temporaryToken: string
+    code: string
+}
+
+export interface TwoFactorDisablePayload {
+    password: string
+    code: string
+}
+
+export interface TwoFactorSetupResult {
+    secret: string
+    qrCode: string
+    manualEntryKey: string
+    issuer: string
+}
+
 export interface ChangePasswordPayload {
     old_password: string
     new_password: string
@@ -32,5 +49,7 @@ Omit<RegisterPayload, "school_name"> {
 }
 
 export interface AuthResponse extends Omit<User, "password"> {
-    access_token: string
+    access_token?: string
+    requires2FA?: boolean
+    temporaryToken?: string
 }

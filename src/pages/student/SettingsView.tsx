@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TwoFactorSecurityCard } from "@/components/account/TwoFactorSecurityCard";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -322,6 +323,9 @@ export function StudentSettingsView() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Two-factor authentication */}
+      <TwoFactorSecurityCard enabled={!!account.data?.two_factor_enabled} />
 
       {/* Appearance */}
       <Card>
