@@ -13,6 +13,14 @@ import { QuizDetailView } from './pages/teacher/QuizDetailView'
 import { CreateQuizView } from './pages/teacher/CreateQuizView'
 import { QuestionBankView } from './pages/teacher/QuestionBankView'
 import { AnalyticsView } from './pages/teacher/AnalyticsView'
+import { ReportsOverviewView } from './pages/teacher/reports/ReportsOverviewView'
+import { StudentPerformanceView } from './pages/teacher/reports/StudentPerformanceView'
+import { StudentReportView } from './pages/teacher/reports/StudentReportView'
+import { SubjectAnalyticsView } from './pages/teacher/reports/SubjectAnalyticsView'
+import { SubjectReportView } from './pages/teacher/reports/SubjectReportView'
+import { ClassReportView } from './pages/teacher/reports/ClassReportView'
+import { ImprovementReportView } from './pages/teacher/reports/ImprovementReportView'
+import { AtRiskStudentsView } from './pages/teacher/reports/AtRiskStudentsView'
 import { ProfileView } from './pages/teacher/ProfileView'
 import { TeacherSettingsView } from './pages/teacher/TeacherSettingsView'
 import { StudentDetailView } from './pages/teacher/StudentDetailView'
@@ -54,6 +62,7 @@ const SubjectDetailRoute = withTeacherOutlet(SubjectDetailView)
 const CreateQuizRoute = withTeacherOutlet(CreateQuizView)
 const QuestionBankRoute = withTeacherOutlet(QuestionBankView)
 const AnalyticsRoute = withTeacherOutlet(AnalyticsView)
+const ReportsOverviewRoute = withTeacherOutlet(ReportsOverviewView)
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -94,6 +103,15 @@ function App() {
               <Route path='create-quiz' element={<CreateQuizRoute />} />
               <Route path='question-bank' element={<QuestionBankRoute />} />
               <Route path='analytics' element={<AnalyticsRoute />} />
+              <Route path='reports' element={<ReportsOverviewRoute />} />
+              <Route path='reports/students' element={<StudentPerformanceView />} />
+              <Route path='reports/students/at-risk' element={<AtRiskStudentsView />} />
+              <Route path='reports/student/:studentId' element={<StudentReportView />} />
+              <Route path='reports/subjects' element={<SubjectAnalyticsView />} />
+              <Route path='reports/subject/:subjectId' element={<SubjectReportView />} />
+              <Route path='reports/class' element={<ClassReportView />} />
+              <Route path='reports/class/:classId' element={<ClassReportView />} />
+              <Route path='reports/improvement' element={<ImprovementReportView />} />
               <Route path='profile' element={<ProfileView />} />
               <Route path='settings' element={<TeacherSettingsView />} />
             </Route>

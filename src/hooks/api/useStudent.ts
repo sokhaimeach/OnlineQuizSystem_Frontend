@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { ClassAttempt, DoQuizAttempt, QuizResult } from "@/models/attempt.interface"
+import type { ClassAttempt } from "@/models/attempt.interface"
 import type { ClassInfo, JoinedClass } from "@/models/class.interface"
 import {
   createAttempt,
@@ -102,7 +102,7 @@ export const useQuizResult = (attemptId: string) => useQuery({
 
 // ---- Student Assignment Hooks ----
 import { getStudentAssignments, getStudentAssignment, type StudentAssignmentFilters } from "@/services/student/assignment.service"
-import { getStudentDashboard, getStudentPerformance } from "@/services/student/report.service"
+import { getStudentDashboard, getStudentPerformance, getStudentProgress } from "@/services/student/report.service"
 import type { StudentAssignmentListItem, StudentDashboardData, StudentPerformanceData } from "@/models/assignment.interface"
 
 export const useGetStudentAssignments = (filters: StudentAssignmentFilters) => useQuery({
@@ -117,6 +117,7 @@ export const useGetStudentAssignment = (id: string) => useQuery({
 })
 
 // ---- Student Report Hooks ----
+import type { StudentProgress } from "@/models/report.interface"
 
 export const useGetStudentDashboard = () => useQuery({
   queryKey: ["student-dashboard"],
@@ -127,5 +128,11 @@ export const useGetStudentDashboard = () => useQuery({
 export const useGetStudentPerformance = () => useQuery({
   queryKey: ["student-performance"],
   queryFn: async () => body<StudentPerformanceData>(await getStudentPerformance()),
+  staleTime: 30_000,
+})
+
+export const useGetStudentProgress = () => useQuery({
+  queryKey: ["student-progress"],
+  queryFn: async () => body<StudentProgress>(await getStudentProgress()),
   staleTime: 30_000,
 })

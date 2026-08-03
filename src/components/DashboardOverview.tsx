@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ArrowRight,
   Activity,
-  Loader2,
 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -25,6 +24,9 @@ import {
   useReportUpcomingDeadlines,
 } from "@/hooks/api/useAnalytics";
 import { useGetRecentClasses } from "@/hooks/api/useClass";
+import { useDashboardImprovement } from "@/hooks/api/useReports";
+import { StudentsRequiringImprovement } from "@/components/teacher/dashboard/StudentsRequiringImprovement";
+import { InsightCards } from "@/components/teacher/dashboard/InsightCards";
 import { useNavigate } from "react-router-dom";
 
 interface DashboardOverviewProps {
@@ -79,17 +81,20 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   const recentClassesQuery = useGetRecentClasses();
   const recentActivityQuery = useReportActivity();
   const upcomingDeadlinesQuery = useReportUpcomingDeadlines();
+  const improvementQuery = useDashboardImprovement();
 
   const isLoading =
     summaryQuery.isLoading ||
     recentClassesQuery.isLoading ||
     recentActivityQuery.isLoading ||
-    upcomingDeadlinesQuery.isLoading;
+    upcomingDeadlinesQuery.isLoading ||
+    improvementQuery.isLoading;
   const isError =
     summaryQuery.isError ||
     recentClassesQuery.isError ||
     recentActivityQuery.isError ||
-    upcomingDeadlinesQuery.isError;
+    upcomingDeadlinesQuery.isError ||
+    improvementQuery.isError;
 
   if (isLoading) {
     return (
@@ -160,6 +165,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   const recentClasses = recentClassesQuery.data ?? [];
   const recentActivity = recentActivityQuery.data ?? [];
   const upcomingDeadlines = upcomingDeadlinesQuery.data ?? [];
+  const improvement = improvementQuery.data;
 
   return (
     <div className="flex flex-col gap-6">
@@ -179,8 +185,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
       />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">        <StatCard
           label="Total Classes"
           value={summary?.total_classes ?? 0}
           icon={School}
@@ -223,6 +228,23 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           bgClass="bg-violet-50 dark:bg-zinc-800"
         />
       </div>
+
+      {/* Students Requiring Improvement */}
+      <StudentsRequiringImprovement
+        students={improvement?.students_requiring_improvement ?? []}
+        loading={improvementQuery.isLoading}
+        onNavigate={onNavigate}
+        onQuickView={(studentId) => navigate(`/teacher/students/${studentId}`)}
+      />
+
+      {/* Insight Cards */}
+      {improvement && (
+        <InsightCards
+          cards={improvement.insight_cards}
+          onNavigate={onNavigate}
+          navigate={navigate}
+        />
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

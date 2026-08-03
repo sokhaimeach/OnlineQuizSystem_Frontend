@@ -4,9 +4,7 @@ import {
   School,
   BookOpen,
   PlusCircle,
-  Library,
   BarChart3,
-  UserCircle,
   ChevronRight,
   GraduationCap,
   Edit3,
@@ -17,6 +15,7 @@ import {
   QrCode,
   Share2,
   Trash2,
+  FileBarChart2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -92,6 +91,14 @@ export type DashboardSection =
   | "create-quiz"
   | "question-bank"
   | "analytics"
+  | "reports"
+  | "student-performance"
+  | "student-report"
+  | "subject-analysis"
+  | "subject-report"
+  | "class-report"
+  | "improvement"
+  | "at-risk"
   | "profile"
   | "settings";
 
@@ -742,6 +749,59 @@ export function AppSidebar({
               activeSection={activeSection}
               onNavigate={onNavigate}
             />
+            <CollapsibleNav
+              icon={FileBarChart2}
+              label="Reports"
+              defaultOpen
+              relatedSections={[
+                "reports",
+                "student-performance",
+                "student-report",
+                "subject-analysis",
+                "subject-report",
+                "class-report",
+                "improvement",
+                "at-risk",
+              ]}
+              activeSection={activeSection}
+            >
+              <SubNavItem
+                label="Overview"
+                section="reports"
+                activeSection={activeSection}
+                onNavigate={onNavigate}
+              />
+              <SubNavItem
+                label="Student Performance"
+                section="student-performance"
+                activeSection={activeSection}
+                onNavigate={onNavigate}
+              />
+              <SubNavItem
+                label="Subject Analysis"
+                section="subject-analysis"
+                activeSection={activeSection}
+                onNavigate={onNavigate}
+              />
+              <SubNavItem
+                label="Class Report"
+                section="class-report"
+                activeSection={activeSection}
+                onNavigate={onNavigate}
+              />
+              <SubNavItem
+                label="Improvement"
+                section="improvement"
+                activeSection={activeSection}
+                onNavigate={onNavigate}
+              />
+              <SubNavItem
+                label="At-Risk Students"
+                section="at-risk"
+                activeSection={activeSection}
+                onNavigate={onNavigate}
+              />
+            </CollapsibleNav>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

@@ -37,6 +37,42 @@ const sectionBreadcrumb: Record<
   "create-quiz": [{ label: "Content" }, { label: "Create Quiz" }],
   "question-bank": [{ label: "Content" }, { label: "Question Bank" }],
   analytics: [{ label: "Insights" }, { label: "Analytics" }],
+  reports: [{ label: "Insights" }, { label: "Reports" }],
+  "student-performance": [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "Student Performance" },
+  ],
+  "student-report": [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "Student Report" },
+  ],
+  "subject-analysis": [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "Subject Analysis" },
+  ],
+  "subject-report": [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "Subject Report" },
+  ],
+  "class-report": [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "Class Report" },
+  ],
+  improvement: [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "Improvement Report" },
+  ],
+  "at-risk": [
+    { label: "Insights" },
+    { label: "Reports" },
+    { label: "At-Risk Students" },
+  ],
   profile: [{ label: "Profile" }],
   settings: [{ label: "Profile" }, { label: "Account Settings" }],
 };
@@ -50,6 +86,14 @@ const sectionToRoute: Record<DashboardSection, string> = {
   "create-quiz": "create-quiz",
   "question-bank": "question-bank",
   analytics: "analytics",
+  reports: "reports",
+  "student-performance": "reports/students",
+  "student-report": "reports/students",
+  "subject-analysis": "reports/subjects",
+  "subject-report": "reports/subjects",
+  "class-report": "reports/class",
+  improvement: "reports/improvement",
+  "at-risk": "reports/students/at-risk",
   profile: "profile",
   settings: "settings",
 };
@@ -95,7 +139,23 @@ export default function TeacherDashboard() {
         currentRoute.startsWith("attempts/") ||
         currentRoute.startsWith("assignments/")
       ? "class-detail"
-      : (routeToSection[currentRoute] ?? "dashboard");
+      : currentRoute.startsWith("reports/student/")
+        ? "student-report"
+        : currentRoute.startsWith("reports/subject/")
+          ? "subject-report"
+          : currentRoute.startsWith("reports/class/")
+            ? "class-report"
+            : currentRoute.startsWith("reports/students/at-risk")
+              ? "at-risk"
+              : currentRoute.startsWith("reports/students")
+                ? "student-performance"
+                : currentRoute.startsWith("reports/subjects")
+                  ? "subject-analysis"
+                  : currentRoute.startsWith("reports/improvement")
+                    ? "improvement"
+                    : currentRoute.startsWith("reports/")
+                      ? "reports"
+                      : (routeToSection[currentRoute] ?? "dashboard");
   const breadcrumb = useMemo(() => {
     if (currentRoute.startsWith("classes/")) {
       return [
@@ -130,6 +190,27 @@ export default function TeacherDashboard() {
         { label: "Teaching" },
         { label: "Classes" },
         { label: "Assignment attempts" },
+      ];
+    }
+    if (currentRoute.startsWith("reports/student/")) {
+      return [
+        { label: "Insights" },
+        { label: "Reports", href: "/teacher/reports" },
+        { label: "Student Report" },
+      ];
+    }
+    if (currentRoute.startsWith("reports/subject/")) {
+      return [
+        { label: "Insights" },
+        { label: "Reports", href: "/teacher/reports" },
+        { label: "Subject Report" },
+      ];
+    }
+    if (currentRoute.startsWith("reports/class/")) {
+      return [
+        { label: "Insights" },
+        { label: "Reports", href: "/teacher/reports" },
+        { label: "Class Report" },
       ];
     }
     return sectionBreadcrumb[activeSection];

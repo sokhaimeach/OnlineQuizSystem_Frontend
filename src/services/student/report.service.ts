@@ -11,3 +11,7 @@ export const getStudentAttempts = async () => {
 export const getStudentPerformance = async () => {
     return api.get("/student/report/performance")
 }
+
+export const getStudentProgress = async () => {
+    return api.get("/student/report/progress")
+}

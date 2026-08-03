@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { QueryError } from "@/components/teacher/QueryError";
 import { AttemptHistoryTable } from "@/components/teacher/attempt/AttemptHistoryTable";
 import { StudentDetails } from "@/components/teacher/student/StudentDetails";
+import { StudentPerformanceOverview } from "@/components/teacher/student/StudentPerformanceOverview";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -63,6 +64,8 @@ export function StudentDetailView() {
       ) : (
         <StudentDetails student={studentQuery.data} />
       )}
+
+      <StudentPerformanceOverview studentId={id} />
 
       <section className="space-y-3">
         <div>
