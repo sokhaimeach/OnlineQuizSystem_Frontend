@@ -1,7 +1,6 @@
 import {
   CalendarClock,
   CheckCircle2,
-  Loader2,
   Play,
   RotateCcw,
   Search,
@@ -9,6 +8,7 @@ import {
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,8 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable, type ColumnDef } from "@/components/data-table";
+import { TablePagination } from "@/components/table-pagination";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useGetStudentAssignments } from "@/hooks/api/useStudent";
 import { formatDateTime } from "@/utils/student-format";
 import type {
@@ -29,13 +31,142 @@ import type {
 
 const statusVariant: Record<
   StudentAssignmentStatus,
-  "success" | "warning" | "info" | "danger" | "muted"
+  "success" | "warning" | "info" | "danger" | "muted" | "primary"
 > = {
   ACTIVE: "success",
   UPCOMING: "info",
   COMPLETED: "primary",
   OVERDUE: "danger",
 };
+
+const statusLabel: Record<StudentAssignmentStatus, string> = {
+  ACTIVE: "Active",
+  UPCOMING: "Upcoming",
+  COMPLETED: "Completed",
+  OVERDUE: "Overdue",
+};
+
+function AttemptStatus({ a }: { a: StudentAssignmentListItem }) {
+  const attempt = a.attempt;
+  if (!attempt)
+    return (
+      <span className="text-xs text-muted-foreground">Not started</span>
+    );
+  if (attempt.status === "IN_PROGRESS")
+    return (
+      <StatusBadge variant="warning" dot>
+        In Progress
+      </StatusBadge>
+    );
+  if (attempt.status === "TIMEOUT")
+    return (
+      <StatusBadge variant="danger" dot>
+        Timed Out
+      </StatusBadge>
+    );
+  return (
+    <StatusBadge variant="success" dot>
+      Submitted
+    </StatusBadge>
+  );
+}
+
+function ActionButton({
+  a,
+  navigate,
+  fullWidth = false,
+}: {
+  a: StudentAssignmentListItem;
+  navigate: ReturnType<typeof useNavigate>;
+  fullWidth?: boolean;
+}) {
+  if (a.attempt?.status === "IN_PROGRESS") {
+    return (
+      <Button
+        size="sm"
+        className={fullWidth ? "w-full" : undefined}
+        onClick={() => navigate(`/do-quiz/${a.id}`)}
+      >
+        <Play /> Continue
+      </Button>
+    );
+  }
+  if (a.status === "ACTIVE" || a.status === "UPCOMING") {
+    return (
+      <Button
+        size="sm"
+        className={fullWidth ? "w-full" : undefined}
+        onClick={() => navigate(`/do-quiz/${a.id}`)}
+      >
+        <Play /> Start
+      </Button>
+    );
+  }
+  if (
+    a.attempt?.status === "SUBMITTED" ||
+    a.attempt?.status === "TIMEOUT"
+  ) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className={fullWidth ? "w-full" : undefined}
+        onClick={() => navigate(`/student/result/${a.attempt?.id}`)}
+      >
+        <CheckCircle2 /> View
+      </Button>
+    );
+  }
+  return null;
+}
+
+function AssignmentCard({
+  a,
+  navigate,
+}: {
+  a: StudentAssignmentListItem;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-medium leading-snug break-words">{a.title}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {a.class?.class_name ?? "—"}
+              {a.quiz?.title ? ` · ${a.quiz.title}` : ""}
+            </p>
+          </div>
+          <StatusBadge
+            variant={statusVariant[a.status]}
+            dot
+            className="shrink-0"
+          >
+            {statusLabel[a.status]}
+          </StatusBadge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Due date</p>
+            <p className="mt-0.5 font-medium">{formatDateTime(a.due_date)}</p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Attempt</p>
+            <div className="mt-0.5">
+              <AttemptStatus a={a} />
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-3">
+          <ActionButton a={a} navigate={navigate} fullWidth />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function StudentAssignmentsView() {
   const navigate = useNavigate();
@@ -90,7 +221,7 @@ export function StudentAssignmentsView() {
         header: "Status",
         cell: ({ row }) => (
           <StatusBadge variant={statusVariant[row.original.status]} dot>
-            {row.original.status}
+            {statusLabel[row.original.status]}
           </StatusBadge>
         ),
       },
@@ -102,67 +233,13 @@ export function StudentAssignmentsView() {
           if (a.attempt.status === "IN_PROGRESS") return "In Progress";
           return "Completed";
         },
-        cell: ({ row }) => {
-          const attempt = row.original.attempt;
-          if (!attempt)
-            return (
-              <span className="text-muted-foreground text-xs">Not started</span>
-            );
-          if (attempt.status === "IN_PROGRESS")
-            return (
-              <StatusBadge variant="warning" dot>
-                In Progress
-              </StatusBadge>
-            );
-          if (attempt.status === "TIMEOUT")
-            return (
-              <StatusBadge variant="danger" dot>
-                Timed Out
-              </StatusBadge>
-            );
-          return (
-            <StatusBadge variant="success" dot>
-              Submitted
-            </StatusBadge>
-          );
-        },
+        cell: ({ row }) => <AttemptStatus a={row.original} />,
       },
       {
         id: "actions",
         header: "Action",
         enableSorting: false,
-        cell: ({ row }) => {
-          const a = row.original;
-          if (a.attempt?.status === "IN_PROGRESS") {
-            return (
-              <Button size="sm" onClick={() => navigate(`/do-quiz/${a.id}`)}>
-                <Play /> Continue
-              </Button>
-            );
-          }
-          if (a.status === "ACTIVE" || a.status === "UPCOMING") {
-            return (
-              <Button size="sm" onClick={() => navigate(`/do-quiz/${a.id}`)}>
-                <Play /> Start
-              </Button>
-            );
-          }
-          if (
-            a.attempt?.status === "SUBMITTED" ||
-            a.attempt?.status === "TIMEOUT"
-          ) {
-            return (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/student/result/${a.attempt?.id}`)}
-              >
-                <CheckCircle2 /> View
-              </Button>
-            );
-          }
-          return null;
-        },
+        cell: ({ row }) => <ActionButton a={row.original} navigate={navigate} />,
       },
     ],
     [navigate],
@@ -173,6 +250,12 @@ export function StudentAssignmentsView() {
     setPage(1);
   };
 
+  const totalItems = meta?.totalItems ?? assignments.length;
+  const totalPages = meta?.totalPages ?? 1;
+  const firstRowNumber =
+    assignments.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastRowNumber = Math.min(firstRowNumber + assignments.length - 1, totalItems);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -182,8 +265,16 @@ export function StudentAssignmentsView() {
             All assignments across your classes.
           </p>
         </div>
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="animate-spin size-6 text-muted-foreground" />
+        <Skeleton className="h-10 w-full" />
+        <div className="hidden md:block space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+        <div className="space-y-3 md:hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full rounded-xl" />
+          ))}
         </div>
       </div>
     );
@@ -234,7 +325,7 @@ export function StudentAssignmentsView() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="All status" />
           </SelectTrigger>
           <SelectContent>
@@ -258,22 +349,45 @@ export function StudentAssignmentsView() {
           }
         />
       ) : (
-        <DataTable
-          columns={columns}
-          data={assignments}
-          emptyState="No assignments match your search."
-          pagination={{ pageIndex: page - 1, pageSize }}
-          onPaginationChange={(updater) => {
-            const next =
-              typeof updater === "function"
-                ? updater({ pageIndex: page - 1, pageSize })
-                : updater;
-            setPage(next.pageIndex + 1);
-          }}
-          pageCount={meta?.totalPages ?? 1}
-          rowCount={meta?.totalItems ?? assignments.length}
-          manualPagination
-        />
+        <>
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns}
+              data={assignments}
+              emptyState="No assignments match your search."
+              pagination={{ pageIndex: page - 1, pageSize }}
+              onPaginationChange={(updater) => {
+                const next =
+                  typeof updater === "function"
+                    ? updater({ pageIndex: page - 1, pageSize })
+                    : updater;
+                setPage(next.pageIndex + 1);
+              }}
+              pageCount={totalPages}
+              rowCount={totalItems}
+              manualPagination
+            />
+          </div>
+
+          <div className="space-y-6 md:hidden">
+            <div className="space-y-3">
+              {assignments.map((a) => (
+                <AssignmentCard key={a.id} a={a} navigate={navigate} />
+              ))}
+            </div>
+            <TablePagination
+              firstRowNumber={firstRowNumber}
+              lastRowNumber={lastRowNumber}
+              rowCount={totalItems}
+              pageIndex={page - 1}
+              pageCount={totalPages}
+              canPreviousPage={page > 1}
+              canNextPage={page < totalPages}
+              onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            />
+          </div>
+        </>
       )}
     </div>
   );

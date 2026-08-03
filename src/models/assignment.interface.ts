@@ -1,5 +1,3 @@
-import type { Quiz } from "./quiz.interface";
-
 export type AssignmentStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
 export interface Assignment {

@@ -17,11 +17,9 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { TablePagination } from "@/components/table-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -287,40 +285,24 @@ export function DataTable<TData, TValue>({
       </div>
 
       {!hidePagination && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            {enableRowSelection &&
+        <TablePagination
+          firstRowNumber={firstRowNumber}
+          lastRowNumber={lastRowNumber}
+          rowCount={rowCount ?? table.getFilteredRowModel().rows.length}
+          pageIndex={resolvedPagination.pageIndex}
+          pageCount={table.getPageCount()}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onPrevious={() => table.previousPage()}
+          onNext={() => table.nextPage()}
+          selectedCount={
+            enableRowSelection &&
             table.getFilteredSelectedRowModel().rows.length > 0
-              ? `${table.getFilteredSelectedRowModel().rows.length} selected · `
-              : ""}
-            {firstRowNumber}–{lastRowNumber} of{" "}
-            {rowCount ?? table.getFilteredRowModel().rows.length}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              Page {resolvedPagination.pageIndex + 1} of{" "}
-              {Math.max(table.getPageCount(), 1)}
-            </span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage() || loading}
-              aria-label="Previous page"
-            >
-              <ChevronLeft />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage() || loading}
-              aria-label="Next page"
-            >
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
+              ? table.getFilteredSelectedRowModel().rows.length
+              : undefined
+          }
+          loading={loading}
+        />
       )}
     </div>
   );

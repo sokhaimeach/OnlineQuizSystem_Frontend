@@ -149,14 +149,14 @@ export function StudentSettingsView() {
         </CardHeader>
         <CardContent>
           <form className="space-y-5" onSubmit={submit}>
-            <div className="flex items-center gap-4 rounded-lg border p-4">
-              <Avatar className="size-20">
+            <div className="flex flex-col items-start gap-4 rounded-lg border p-4 sm:flex-row sm:items-center">
+              <Avatar className="size-20 shrink-0">
                 <AvatarImage src={currentSrc} />
                 <AvatarFallback>
                   {account.data?.first_name?.[0] ?? "S"}
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="min-w-0">
                 <p className="font-medium">Profile avatar</p>
                 <p className="mb-2 text-xs text-muted-foreground">
                   JPG, PNG, or WEBP
@@ -168,7 +168,7 @@ export function StudentSettingsView() {
                   accept="image/*"
                   onChange={(e) => handleFileSelect(e.target.files?.[0])}
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"

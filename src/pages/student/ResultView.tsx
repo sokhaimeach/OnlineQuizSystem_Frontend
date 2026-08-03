@@ -420,8 +420,8 @@ function ResultHeader({
         <Badge className="mt-4" variant={passed ? "default" : "destructive"}>
           {passed ? "Passed" : "Needs improvement"}
         </Badge>
-        <h1 className="mt-3 text-2xl font-bold">{assignmentTitle}</h1>
-        <p className="text-muted-foreground">{quizTitle}</p>
+        <h1 className="mt-3 text-2xl font-bold break-words">{assignmentTitle}</h1>
+        <p className="text-muted-foreground break-words">{quizTitle}</p>
         <p className="mt-5 text-4xl font-bold">
           {score}
           <span className="text-lg font-normal text-muted-foreground">
@@ -457,7 +457,7 @@ function SummaryCard({
             good ? "text-emerald-600" : "text-muted-foreground",
           )}
         />
-        <p className="mt-2 text-xl font-bold">{value}</p>
+        <p className="mt-2 text-lg font-bold sm:text-xl">{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </CardContent>
     </Card>
@@ -492,15 +492,18 @@ function QuestionReviewSection({ result }: { result: ResultWithAnswers }) {
           <Card key={question.id}>
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">
                     Question {index + 1} &middot; {question.score} points
                   </p>
-                  <CardTitle className="mt-1 text-base">
+                  <CardTitle className="mt-1 text-base break-words">
                     {question.question_text}
                   </CardTitle>
                 </div>
-                <Badge variant={correct ? "default" : "destructive"}>
+                <Badge
+                  variant={correct ? "default" : "destructive"}
+                  className="shrink-0"
+                >
                   {correct ? "Correct" : "Incorrect"}
                 </Badge>
               </div>

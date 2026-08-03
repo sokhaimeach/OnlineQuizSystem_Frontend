@@ -207,11 +207,11 @@ export function StudentDashboardView() {
                       key={a.id}
                       className="flex items-center gap-3 rounded-lg border p-3"
                     >
-                      <span className="rounded-lg bg-amber-500/10 p-2 text-amber-600">
+                      <span className="shrink-0 rounded-lg bg-amber-500/10 p-2 text-amber-600">
                         <CalendarClock className="size-4" />
                       </span>
-                      <div className="flex-1">
-                        <p className="font-medium">{a.title}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{a.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {a.class?.class_name ?? ""} · Due{" "}
                           {formatDateTime(a.due_date)}
@@ -220,6 +220,7 @@ export function StudentDashboardView() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="shrink-0"
                         onClick={() => navigate("/student/assignments")}
                       >
                         Start <ArrowRight />
@@ -333,7 +334,7 @@ function ContinueAssignmentCard({
                     {a.class?.class_name ?? ""}
                     {a.quiz && <> · {a.quiz.title}</>}
                   </p>
-                  <p className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <ListChecks className="size-3" />
                       {a.total_question} question
@@ -342,7 +343,11 @@ function ContinueAssignmentCard({
                     <span>{formatDuration(a.remaining_seconds)} remaining</span>
                   </p>
                 </div>
-                <Button size="sm" onClick={() => navigate(`/do-quiz/${a.id}`)}>
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => navigate(`/do-quiz/${a.id}`)}
+                >
                   {a.attempt ? (
                     <>
                       <Play /> Continue
@@ -469,17 +474,17 @@ function LearningProgressCard({
             <div className="space-y-3">
               {progress.subjects.map((subject) => (
                 <div key={subject.subject_id ?? "unassigned"}>
-                  <div className="mb-1 flex items-center justify-between gap-3">
-                    <span className="flex items-center gap-2 text-sm font-medium text-foreground min-w-0">
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
                       <span className="truncate">{subject.subject_name}</span>
                       <StatusBadge
                         variant={subjectLevelVariant(subject.performance_level)}
-                        className="text-[10px] py-0 px-1.5"
+                        className="shrink-0 text-[10px] py-0 px-1.5"
                       >
                         {subjectLevelLabel(subject.performance_level)}
                       </StatusBadge>
                     </span>
-                    <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       {subject.average_score != null
                         ? `${subject.average_score}%`
                         : "—"}{" "}

@@ -203,7 +203,6 @@ export function DoQuizPage() {
     return (
       <QuizSession
         attemptId={page.attemptId}
-        registered={registered}
         onUnavailable={(msg, url) =>
           setPage({ phase: "unavailable", message: msg, redirect: url })
         }
@@ -359,12 +358,10 @@ function TimeoutScreen({
 
 function QuizSession({
   attemptId,
-  registered,
   onUnavailable,
   onSubmitted,
 }: {
   attemptId: string;
-  registered: boolean;
   onUnavailable: (msg: string, redirect?: string) => void;
   onSubmitted: (url: string) => void;
 }) {
@@ -375,7 +372,6 @@ function QuizSession({
   const [seconds, setSeconds] = useState<number | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const submittedRef = useRef(false);
-  const navigate = useNavigate();
 
   // Parse the raw response - unwrap the Axios data
   const rawData = query.data as { data?: unknown } | undefined;
@@ -528,9 +524,9 @@ function QuizSession({
           isLowTime ? "bg-destructive/5 border-destructive/20" : "bg-card/95",
         )}
       >
-        <div className="mx-auto max-w-4xl px-4 py-2.5">
+        <div className="mx-auto max-w-4xl px-3 py-2.5 sm:px-4">
           {/* Top row: quiz title + timer + submit */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">
                 {quiz?.title ?? ""}
@@ -543,7 +539,7 @@ function QuizSession({
             {timeDisplay && (
               <div
                 className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-sm font-bold",
+                  "flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-2 font-mono text-sm font-bold sm:gap-2 sm:px-3",
                   isLowTime
                     ? "border-destructive/40 bg-destructive/10 text-destructive"
                     : "border-border",
@@ -567,6 +563,7 @@ function QuizSession({
             )}
             <Button
               size="sm"
+              className="shrink-0"
               disabled={submit.isPending}
               onClick={() => setConfirm(true)}
             >

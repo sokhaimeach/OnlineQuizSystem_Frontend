@@ -42,14 +42,14 @@ export function StudentAccountView() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">My Account</h1>
           <p className="text-muted-foreground">
             Your student profile and contact information.
           </p>
         </div>
-        <Button onClick={() => navigate("/student/settings")}>
+        <Button className="shrink-0 self-start sm:self-auto" onClick={() => navigate("/student/settings")}>
           <Pencil /> Edit profile
         </Button>
       </div>
@@ -61,8 +61,8 @@ export function StudentAccountView() {
             <AvatarImage src={account.avatar_url ?? undefined} />
             <AvatarFallback className="text-xl">{initials || "S"}</AvatarFallback>
           </Avatar>
-          <h2 className="mt-3 text-2xl font-bold">{name}</h2>
-          <p className="mt-1 text-muted-foreground">
+          <h2 className="mt-3 text-2xl font-bold break-words">{name}</h2>
+          <p className="mt-1 break-words text-muted-foreground">
             {account.bio || "No bio provided."}
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-sm">

@@ -55,19 +55,20 @@ export function StudentClassDetailView() {
             <Card key={attempt.id}>
               <CardHeader className="gap-2">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-medium uppercase tracking-wide text-primary">
                       {attempt.assignment.type}
                     </p>
-                    <CardTitle className="mt-1">
+                    <CardTitle className="mt-1 break-words">
                       {attempt.assignment.title}
                     </CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground break-words">
                       {attempt.assignment.quiz.title}
                     </p>
                   </div>
                   <Badge
                     variant={attempt.submitted_at ? "default" : "secondary"}
+                    className="shrink-0"
                   >
                     {attempt.submitted_at ? "Submitted" : "In progress"}
                   </Badge>

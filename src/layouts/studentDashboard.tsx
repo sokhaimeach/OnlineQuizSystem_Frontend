@@ -57,7 +57,7 @@ function StudentShell() {
           to={to}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -145,7 +145,7 @@ function StudentShell() {
                 <SheetHeader>
                   <SheetTitle>Student menu</SheetTitle>
                 </SheetHeader>
-                <nav className="grid gap-1 px-4">{nav(true)}</nav>
+                <nav className="grid gap-1.5 px-4">{nav(true)}</nav>
               </SheetContent>
             </Sheet>
           </div>
