@@ -45,6 +45,8 @@ import { StudentResultView } from './pages/student/ResultView'
 import { StudentRegisterPage } from './pages/student/RegisterPage'
 import { JoinClassPage } from './pages/student/JoinClassPage'
 import { JoinSuccessPage } from './pages/student/JoinSuccessPage'
+import { AuthProvider } from './contexts/AuthContext'
+import { useSession } from './contexts/auth-session'
 
 const queryClient = new QueryClient()
 
@@ -63,60 +65,76 @@ const CreateQuizRoute = withTeacherOutlet(CreateQuizView)
 const QuestionBankRoute = withTeacherOutlet(QuestionBankView)
 const AnalyticsRoute = withTeacherOutlet(AnalyticsView)
 const ReportsOverviewRoute = withTeacherOutlet(ReportsOverviewView)
+
+function AuthLanding() {
+  const { isAuthenticated, role } = useSession()
+
+  if (!isAuthenticated) return <Navigate to='/login' replace />
+
+  return (
+    <Navigate
+      to={role === 'STUDENT' ? '/student/dashboard' : '/teacher/dashboard'}
+      replace
+    />
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path='/' element={<Navigate to='/login' replace />} />
-            <Route path='/login' element={<Login />} />
-            <Route path='/register' element={<Register />} />
-            <Route path='/student/register' element={<StudentRegisterPage />} />
-            <Route path='/student/join/:classId' element={<JoinClassPage />} />
-            <Route path='/student/join/:classId/success' element={<JoinSuccessPage />} />
-            <Route path='/do-quiz/:assignmentId' element={<DoQuizPage />} />
-            <Route path='/result/:attemptId' element={<StudentResultView />} />
-            <Route path='/student' element={<StudentRoute><StudentDashboard /></StudentRoute>}>
-              <Route index element={<Navigate to='dashboard' replace />} />
-              <Route path='dashboard' element={<StudentDashboardView />} />
-              <Route path='assignments' element={<StudentAssignmentsView />} />
-              <Route path='classes' element={<StudentClassesView />} />
-              <Route path='classes/:classId' element={<StudentClassDetailView />} />
-              <Route path='result/:attemptId' element={<StudentResultView />} />
-              <Route path='account' element={<StudentAccountView />} />
-              <Route path='settings' element={<StudentSettingsView />} />
-            </Route>
-            <Route path='/teacher' element={<TeacherRoute><TeacherDashboard /></TeacherRoute>}>
-              <Route index element={<DashboardRoute />} />
-              <Route path='dashboard' element={<DashboardRoute />} />
-              <Route path='classes' element={<ClassesView />} />
-              <Route path='classes/:classId' element={<ClassDetailRoute />} />
+          <AuthProvider>
+            <Routes>
+              <Route path='/' element={<AuthLanding />} />
+              <Route path='/login' element={<Login />} />
+              <Route path='/register' element={<Register />} />
+              <Route path='/student/register' element={<StudentRegisterPage />} />
+              <Route path='/student/join/:classId' element={<JoinClassPage />} />
+              <Route path='/student/join/:classId/success' element={<JoinSuccessPage />} />
+              <Route path='/do-quiz/:assignmentId' element={<DoQuizPage />} />
+              <Route path='/result/:attemptId' element={<StudentResultView />} />
+              <Route path='/student' element={<StudentRoute><StudentDashboard /></StudentRoute>}>
+                <Route index element={<Navigate to='dashboard' replace />} />
+                <Route path='dashboard' element={<StudentDashboardView />} />
+                <Route path='assignments' element={<StudentAssignmentsView />} />
+                <Route path='classes' element={<StudentClassesView />} />
+                <Route path='classes/:classId' element={<StudentClassDetailView />} />
+                <Route path='result/:attemptId' element={<StudentResultView />} />
+                <Route path='account' element={<StudentAccountView />} />
+                <Route path='settings' element={<StudentSettingsView />} />
+              </Route>
+              <Route path='/teacher' element={<TeacherRoute><TeacherDashboard /></TeacherRoute>}>
+                <Route index element={<DashboardRoute />} />
+                <Route path='dashboard' element={<DashboardRoute />} />
+                <Route path='classes' element={<ClassesView />} />
+                <Route path='classes/:classId' element={<ClassDetailRoute />} />
 
-              <Route path='students/:id' element={<StudentDetailView />} />
-              <Route path='attempts/:id' element={<AttemptDetailView />} />
-              <Route path='assignments/:assignmentId/attempts' element={<AssignmentAttemptsView />} />
-              <Route path='subjects' element={<SubjectsRoute />} />
-              <Route path='subjects/:subjectId' element={<SubjectDetailRoute />} />
-              <Route path='quizzes/:quizId' element={<QuizDetailView />} />
-              <Route path='subject-detail' element={<SubjectDetailRoute />} />
-              <Route path='create-quiz' element={<CreateQuizRoute />} />
-              <Route path='question-bank' element={<QuestionBankRoute />} />
-              <Route path='analytics' element={<AnalyticsRoute />} />
-              <Route path='reports' element={<ReportsOverviewRoute />} />
-              <Route path='reports/students' element={<StudentPerformanceView />} />
-              <Route path='reports/students/at-risk' element={<AtRiskStudentsView />} />
-              <Route path='reports/student/:studentId' element={<StudentReportView />} />
-              <Route path='reports/subjects' element={<SubjectAnalyticsView />} />
-              <Route path='reports/subject/:subjectId' element={<SubjectReportView />} />
-              <Route path='reports/class' element={<ClassReportView />} />
-              <Route path='reports/class/:classId' element={<ClassReportView />} />
-              <Route path='reports/improvement' element={<ImprovementReportView />} />
-              <Route path='profile' element={<ProfileView />} />
-              <Route path='settings' element={<TeacherSettingsView />} />
-            </Route>
-            <Route path='*' element={<Navigate to='/login' replace />} />
-          </Routes>
+                <Route path='students/:id' element={<StudentDetailView />} />
+                <Route path='attempts/:id' element={<AttemptDetailView />} />
+                <Route path='assignments/:assignmentId/attempts' element={<AssignmentAttemptsView />} />
+                <Route path='subjects' element={<SubjectsRoute />} />
+                <Route path='subjects/:subjectId' element={<SubjectDetailRoute />} />
+                <Route path='quizzes/:quizId' element={<QuizDetailView />} />
+                <Route path='subject-detail' element={<SubjectDetailRoute />} />
+                <Route path='create-quiz' element={<CreateQuizRoute />} />
+                <Route path='question-bank' element={<QuestionBankRoute />} />
+                <Route path='analytics' element={<AnalyticsRoute />} />
+                <Route path='reports' element={<ReportsOverviewRoute />} />
+                <Route path='reports/students' element={<StudentPerformanceView />} />
+                <Route path='reports/students/at-risk' element={<AtRiskStudentsView />} />
+                <Route path='reports/student/:studentId' element={<StudentReportView />} />
+                <Route path='reports/subjects' element={<SubjectAnalyticsView />} />
+                <Route path='reports/subject/:subjectId' element={<SubjectReportView />} />
+                <Route path='reports/class' element={<ClassReportView />} />
+                <Route path='reports/class/:classId' element={<ClassReportView />} />
+                <Route path='reports/improvement' element={<ImprovementReportView />} />
+                <Route path='profile' element={<ProfileView />} />
+                <Route path='settings' element={<TeacherSettingsView />} />
+              </Route>
+              <Route path='*' element={<Navigate to='/login' replace />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
         <Toaster position='top-right' richColors />
       </TooltipProvider>

@@ -31,6 +31,16 @@ export function getRoleFromToken(token: string | null): Role | null {
   return getRoleFromAuthPayload(payload)
 }
 
+export function isTokenExpired(token: string | null, skewMs = 30_000): boolean {
+  const payload = parseJwtPayload(token)
+  if (!isRecord(payload)) return true
+
+  const exp = payload.exp
+  if (typeof exp !== "number") return true
+
+  return exp * 1000 <= Date.now() + skewMs
+}
+
 export function getRoleFromAuthPayload(payload: unknown): Role | null {
   if (!isRecord(payload)) return null
 

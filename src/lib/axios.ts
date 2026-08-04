@@ -9,7 +9,12 @@ import {
     removeAccessToken
 } from '@/utils/tokenStorage'
 
-import { getAccessTokenFromAuthPayload } from '@/utils/authRole'
+import {
+    getAccessTokenFromAuthPayload,
+    getRoleFromAuthPayload,
+    getRoleFromToken,
+    setStoredRole
+} from '@/utils/authRole'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -36,7 +41,7 @@ const refreshApi = axios.create({
 
 let refreshPromise: Promise<string> | null = null
 
-async function refreshAccessToken(): Promise<string> {
+export async function refreshAccessToken(): Promise<string> {
     if (!refreshPromise) {
         refreshPromise = refreshApi
             .post('/auth/refresh')
@@ -50,6 +55,10 @@ async function refreshAccessToken(): Promise<string> {
                 }
 
                 setAccessToken(newAccessToken)
+                setStoredRole(
+                    getRoleFromAuthPayload(response.data) ??
+                    getRoleFromToken(newAccessToken)
+                )
 
                 return newAccessToken
             })
@@ -133,9 +142,7 @@ api.interceptors.response.use(
                 removeAccessToken()
                 localStorage.removeItem('user_role')
 
-                // This app does not currently have a centralized auth context
-                // that can clear auth state and navigate from outside React.
-                window.location.replace('/login')
+                window.dispatchEvent(new Event('auth:session-expired'))
 
                 return Promise.reject(refreshError)
             }

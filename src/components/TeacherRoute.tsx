@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getRoleFromToken, getStoredRole } from "@/utils/authRole";
-import { getAccessToken } from "@/utils/tokenStorage";
+import { useSession } from "@/contexts/auth-session";
 
 export function TeacherRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const token = getAccessToken();
-  const role = getStoredRole() ?? getRoleFromToken(token);
+  const { isAuthenticated, isInitializing, role } = useSession();
+  const from = `${location.pathname}${location.search}`;
 
-  if (!token)
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  if (isInitializing) return null;
+  if (!isAuthenticated)
+    return <Navigate to="/login" state={{ from }} replace />;
   if (role !== "TEACHER")
     return (
       <Navigate
