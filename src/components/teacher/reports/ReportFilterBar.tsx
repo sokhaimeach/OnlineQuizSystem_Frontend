@@ -8,7 +8,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ExportButton, type ExportOptions } from "./ExportButton";
 
 export interface ReportFilters {
   search?: string;
@@ -24,8 +23,6 @@ interface ReportFilterBarProps {
   subjects?: { id: string; subject_name: string }[];
   showSubject?: boolean;
   showLevel?: boolean;
-  exportOptions?: ExportOptions;
-  exporting?: boolean;
   className?: string;
 }
 
@@ -36,8 +33,6 @@ export function ReportFilterBar({
   subjects = [],
   showSubject = false,
   showLevel = false,
-  exportOptions,
-  exporting,
   className = "",
 }: ReportFilterBarProps) {
   const set = (patch: Partial<ReportFilters>) =>
@@ -132,13 +127,6 @@ export function ReportFilterBar({
         </Select>
       )}
 
-      {exportOptions && (
-        <ExportButton
-          options={exportOptions}
-          disabled={exporting}
-          className="ml-auto"
-        />
-      )}
     </div>
   );
 }

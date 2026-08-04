@@ -13,7 +13,6 @@ import {
 import { DistributionBar, ScoreBar } from "@/components/teacher/reports/ReportCharts";
 import { PerformanceLevelBadge } from "@/components/teacher/reports/PerformanceLevelBadge";
 import { formatScore } from "@/components/teacher/reports/reportUtils";
-import { ExportButton } from "@/components/teacher/reports/ExportButton";
 import { useClassReport } from "@/hooks/api/useReports";
 import { useGetRecentClasses } from "@/hooks/api/useClass";
 import {
@@ -157,10 +156,6 @@ export function ClassReportView() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportButton
-              label="Export CSV"
-              options={{ type: "class", id: selectedClassId }}
-            />
           </div>
         </div>
       </div>

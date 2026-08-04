@@ -228,7 +228,6 @@ export function StudentPerformanceView() {
         }}
         classes={classes}
         showLevel
-        exportOptions={{ type: "students" }}
       />
 
       {(hasTimeout || hasMissing) && (

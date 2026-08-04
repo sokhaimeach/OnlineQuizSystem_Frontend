@@ -1,7 +1,6 @@
 import { useCallback } from "react";
-import { ArrowLeft, ClipboardList, UserRound } from "lucide-react";
+import { ArrowLeft, ClipboardList } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PageHeader } from "@/components/PageHeader";
 import { QueryError } from "@/components/teacher/QueryError";
 import { AttemptHistoryTable } from "@/components/teacher/attempt/AttemptHistoryTable";
 import { StudentDetails } from "@/components/teacher/student/StudentDetails";
@@ -24,33 +23,31 @@ export function StudentDetailView() {
     },
     [navigate],
   );
-  const fullName = studentQuery.data
-    ? `${studentQuery.data.user.first_name} ${studentQuery.data.user.last_name}`
-    : "Student detail";
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-2 mb-4 gap-1.5"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="size-4" /> Back
-        </Button>
-        <PageHeader
-          title={fullName}
-          description={`Student ID: ${id}`}
-          icon={UserRound}
-        />
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-2 w-fit gap-1.5"
+        onClick={() => navigate(-1)}
+      >
+        <ArrowLeft className="size-4" /> Back
+      </Button>
 
       {studentQuery.isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-56 w-full" />
-          ))}
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full rounded-md" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-72 w-full rounded-md" />
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-32 w-full rounded-md" />
+              ))}
+            </div>
+            <Skeleton className="h-56 w-full rounded-md" />
+            <Skeleton className="h-56 w-full rounded-md" />
+          </div>
         </div>
       ) : studentQuery.isError || !studentQuery.data ? (
         <QueryError

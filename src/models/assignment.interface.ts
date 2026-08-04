@@ -1,3 +1,5 @@
+import type { Quiz, QuizStatus } from "./quiz.interface";
+
 export type AssignmentStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
 export interface Assignment {
@@ -13,6 +15,21 @@ export interface Assignment {
     status: AssignmentStatus;
     total_score: string;
     total_question: number;
+}
+
+export type AssignmentQuiz = Pick<
+    Quiz,
+    "id" | "title" | "description" | "duration_minutes" | "status"
+> & {
+    subject_name?: string;
+    question_count?: number | string;
+    difficulty_level?: string;
+    status: QuizStatus;
+};
+
+export interface AssignmentWithQuiz extends Assignment {
+    quiz?: AssignmentQuiz | null;
+    class?: string;
 }
 
 export interface CreateAssignment {

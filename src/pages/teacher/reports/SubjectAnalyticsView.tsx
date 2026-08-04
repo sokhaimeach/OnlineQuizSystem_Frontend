@@ -204,7 +204,6 @@ export function SubjectAnalyticsView() {
         }}
         classes={classes}
         showSubject={false}
-        exportOptions={{ type: "subjects" }}
       />
 
       <DataTable

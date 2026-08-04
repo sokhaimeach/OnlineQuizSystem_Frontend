@@ -24,8 +24,36 @@ export interface Attempt {
     access_token: string;
     status: AttemptStatus;
     total_score: number | null;
+    correct_count?: number;
+    wrong_count?: number;
     started_at: Date | null;
     submitted_at: Date | null;
+}
+
+export interface AssignmentAttemptListItem {
+    id: string;
+    assignment_id: string;
+    student_id: string | null;
+    guest_name: string | null;
+    attempt_number: number | null;
+    status: AttemptStatus;
+    total_score: number | string | null;
+    started_at: Date | string | null;
+    submitted_at: Date | string | null;
+    student?: AssignmentAttemptStudent | null;
+    assignment?: {
+        id: string;
+        title: string;
+        total_score: number | string | null;
+    };
+}
+
+export interface AssignmentAttemptStudent {
+    id: string;
+    student_code?: string | null;
+    full_name: string;
+    email?: string | null;
+    avatar_url?: string | null;
 }
 
 export interface CreateAttemptPayload {

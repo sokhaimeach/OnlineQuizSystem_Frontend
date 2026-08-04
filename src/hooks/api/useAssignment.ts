@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createAssignment, deleteAssignment, getAssignmentByClassId, getAttemptByAssignmentId, updateAssignment } from "@/services/teacher/assignment.service"
 import type { AssignmentWithQuiz, CreateAssignment } from "@/models/assignment.interface"
 import type { AssignmentStatus } from "@/models/assignment.interface"
-import type { Attempt } from "@/models/attempt.interface"
+import type { AssignmentAttemptListItem } from "@/models/attempt.interface"
 
 export const useCreateAssignment = () => {
     const queryClient = useQueryClient()
@@ -33,7 +33,7 @@ export const useGetAttemptByAssignmentId = (assignmentId: string) => {
         queryKey: ['attempts', assignmentId],
         queryFn: async () => {
             const response = await getAttemptByAssignmentId(assignmentId)
-            return response.data as Attempt[]
+            return response.data as AssignmentAttemptListItem[]
         },
         enabled: Boolean(assignmentId),
     })

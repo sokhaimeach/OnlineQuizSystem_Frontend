@@ -46,7 +46,6 @@ const statusVariant: Record<AssignmentStatus, "muted" | "success" | "danger" | "
   DRAFT: "muted",
   PUBLISHED: "success",
   CLOSED: "danger",
-  ARCHIVED: "warning",
 }
 
 export function AssignmentTable({

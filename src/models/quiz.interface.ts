@@ -31,6 +31,7 @@ export interface QuizOption {
     description?: string;
     question_count?: number | string;
     duration_minutes?: number;
+    difficulty_level?: string;
 }
 
 export interface QuizzesPage {
@@ -57,7 +58,7 @@ export interface Option {
     id?: string;
     question_id?: string;
     option_text: string;
-    is_correct: boolean;
+    is_correct?: boolean;
 }
 
 export interface QuestionWithOptions extends Question {

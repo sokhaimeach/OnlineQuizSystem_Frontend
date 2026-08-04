@@ -68,12 +68,14 @@ function AssignmentForm({
   })
 
   const quizOptions = useMemo<QuizOption[]>(() => {
-    if (!assignment?.quiz || quizzes.some(quiz => quiz.id === assignment.quiz.id)) return quizzes
+    const editingQuiz = assignment?.quiz
+    if (!editingQuiz || quizzes.some(quiz => quiz.id === editingQuiz.id)) return quizzes
     return [{
-      id: assignment.quiz.id,
-      title: assignment.quiz.title,
-      description: assignment.quiz.description,
-      duration_minutes: assignment.quiz.duration_minutes,
+      id: editingQuiz.id,
+      title: editingQuiz.title,
+      description: editingQuiz.description,
+      duration_minutes: editingQuiz.duration_minutes,
+      status: editingQuiz.status,
     }, ...quizzes]
   }, [assignment, quizzes])
 

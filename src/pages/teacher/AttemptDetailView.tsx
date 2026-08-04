@@ -1,6 +1,5 @@
-import { ArrowLeft, FileCheck2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PageHeader } from "@/components/PageHeader";
 import { QueryError } from "@/components/teacher/QueryError";
 import { AttemptDetails } from "@/components/teacher/attempt/AttemptDetails";
 import { QuestionReview } from "@/components/teacher/attempt/QuestionReview";
@@ -15,27 +14,31 @@ export function AttemptDetailView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-2 mb-4 gap-1.5"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="size-4" /> Back
-        </Button>
-        <PageHeader
-          title={attemptQuery.data?.assignment.title ?? "Attempt detail"}
-          description={`Attempt ID: ${id}`}
-          icon={FileCheck2}
-        />
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-2 w-fit gap-1.5"
+        onClick={() => navigate(-1)}
+      >
+        <ArrowLeft className="size-4" /> Back to Attempts
+      </Button>
 
       {attemptQuery.isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-56 w-full" />
-          ))}
+        <div className="space-y-6">
+          <Skeleton className="h-36 w-full rounded-md" />
+          <Skeleton className="h-48 w-full rounded-md" />
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+            <Skeleton className="h-72 w-full rounded-md" />
+            <div className="grid gap-6">
+              <Skeleton className="h-40 w-full rounded-md" />
+              <Skeleton className="h-56 w-full rounded-md" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-64 w-full rounded-md" />
+            ))}
+          </div>
         </div>
       ) : attemptQuery.isError || !attemptQuery.data ? (
         <QueryError

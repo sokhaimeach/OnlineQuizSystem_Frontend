@@ -100,18 +100,3 @@ export const getClassReport = async (classId: string) => {
   );
   return unwrap<ClassReport>((response as unknown as { data: ClassReport }).data);
 };
-
-export const getReportExportUrl = (
-  type: "students" | "subjects" | "subject" | "class" | "overview",
-  id?: string,
-  query?: ReportQuery,
-) => {
-  const baseURL = import.meta.env.VITE_API_BASE_URL as string;
-  const params = buildQuery(query);
-  params.format = "csv";
-  const idPart = id ? `/${id}` : "";
-  const searchParams = new URLSearchParams(
-    Object.entries(params).map(([k, v]) => [k, String(v)]),
-  );
-  return `${baseURL}/teacher/reports/export/${type}${idPart}?${searchParams.toString()}`;
-};

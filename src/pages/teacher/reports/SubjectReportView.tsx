@@ -14,7 +14,6 @@ import {
   ScoreBar,
 } from "@/components/teacher/reports/ReportCharts";
 import { formatScore } from "@/components/teacher/reports/reportUtils";
-import { ExportButton } from "@/components/teacher/reports/ExportButton";
 import { useSubjectReport } from "@/hooks/api/useReports";
 
 function getInitials(name: string) {
@@ -108,10 +107,6 @@ export function SubjectReportView() {
               </p>
             </div>
           </div>
-          <ExportButton
-            label="Export CSV"
-            options={{ type: "subject", id: subjectId }}
-          />
         </div>
       </div>
 

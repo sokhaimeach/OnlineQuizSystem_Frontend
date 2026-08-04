@@ -31,7 +31,7 @@ export function AssignmentAttemptsView() {
         </Button>
         <PageHeader
           title="Assignment attempts"
-          description={`${attemptsQuery.data?.length ?? 0} attempts for assignment ${assignmentId}`}
+          description={`${attemptsQuery.data?.length ?? 0} attempts submitted for this assignment`}
           icon={FileCheck2}
         />
       </div>

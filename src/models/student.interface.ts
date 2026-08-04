@@ -54,7 +54,7 @@ export interface StudentAttemptsHistory {
 
 export type AssignmentWithQuiz = Omit<Assignment, "quiz"> & {
     quiz: QuizWithQuestionsAndAnswers;
-    class?: string;
+    class?: Pick<Class, "id" | "class_name"> | string | null;
 }
 
 export interface StudentAttemptsDetails extends Attempt {
