@@ -118,9 +118,23 @@ api.interceptors.response.use(
 
                 return api(originalRequest)
             } catch (refreshError) {
+                const refreshAxiosError = refreshError as AxiosError
+                const refreshConfig = refreshAxiosError.config
+                const requestUrl = refreshConfig
+                    ? `${refreshConfig.baseURL ?? ''}${refreshConfig.url ?? ''}`
+                    : undefined
+
+                console.error('Authentication refresh failed:', {
+                    status: refreshAxiosError.response?.status,
+                    body: refreshAxiosError.response?.data,
+                    requestUrl,
+                })
+
                 removeAccessToken()
                 localStorage.removeItem('user_role')
 
+                // This app does not currently have a centralized auth context
+                // that can clear auth state and navigate from outside React.
                 window.location.replace('/login')
 
                 return Promise.reject(refreshError)
