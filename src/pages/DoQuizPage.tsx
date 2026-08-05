@@ -41,7 +41,7 @@ import {
 } from "@/hooks/api/useStudent";
 import { cn } from "@/lib/utils";
 import { getStoredRole } from "@/utils/authRole";
-import { getAccessToken } from "@/utils/tokenStorage";
+import { getAccessToken, setAccessToken } from "@/utils/tokenStorage";
 import { formatDateTime } from "@/utils/student-format";
 import type { AttemptState, QuizSessionData } from "@/models/attempt.interface";
 import type { QuestionWithOptions } from "@/models/quiz.interface";
@@ -55,13 +55,21 @@ type PageState =
   | { phase: "submitting" }
   | { phase: "redirecting"; url: string };
 
+const guestAttemptTokenKey = (assignmentId: string) =>
+  `guest_attempt_token:${assignmentId}`;
+
 export function DoQuizPage() {
   const { assignmentId = "" } = useParams();
   const create = useCreateAttempt();
   const navigate = useNavigate();
   const registered = Boolean(getAccessToken() && getStoredRole() === "STUDENT");
+  const storedGuestAttemptToken = assignmentId
+    ? localStorage.getItem(guestAttemptTokenKey(assignmentId))
+    : null;
+  const guestAttemptToken =
+    storedGuestAttemptToken || getAccessToken("x_attempt_token");
   const [page, setPage] = useState<PageState>(
-    registered ? { phase: "creating" } : { phase: "guest-form" },
+    registered || guestAttemptToken ? { phase: "creating" } : { phase: "guest-form" },
   );
   const startedRef = useRef(false);
 
@@ -69,6 +77,9 @@ export function DoQuizPage() {
     async (name?: string) => {
       try {
         setPage({ phase: "creating" });
+        if (!registered && guestAttemptToken) {
+          setAccessToken(guestAttemptToken, "x_attempt_token");
+        }
         const response = await create.mutateAsync({
           assignment_id: assignmentId,
           ...(name ? { guest_name: name } : {}),
@@ -80,6 +91,13 @@ export function DoQuizPage() {
             message: "Could not start attempt.",
           });
           return;
+        }
+        if (!registered && state.access_token) {
+          localStorage.setItem(
+            guestAttemptTokenKey(assignmentId),
+            state.access_token,
+          );
+          setAccessToken(state.access_token, "x_attempt_token");
         }
         if (state.canViewResult && state.redirect) {
           setPage({ phase: "redirecting", url: state.redirect });
@@ -151,20 +169,22 @@ export function DoQuizPage() {
             message: "You do not have access to this assignment.",
             redirect: "/student/assignments",
           });
+        } else if (errorCode === "GUEST_NAME_REQUIRED") {
+          setPage({ phase: "guest-form" });
         } else {
           setPage({ phase: "unavailable", message: msg });
         }
       }
     },
-    [assignmentId, create, navigate],
+    [assignmentId, create, guestAttemptToken, navigate, registered],
   );
 
   useEffect(() => {
-    if (registered && !startedRef.current) {
+    if ((registered || guestAttemptToken) && !startedRef.current) {
       startedRef.current = true;
       void startAttempt();
     }
-  }, [registered, startAttempt]);
+  }, [registered, guestAttemptToken, startAttempt]);
 
   if (page.phase === "guest-form") {
     return (

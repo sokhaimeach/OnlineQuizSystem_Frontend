@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useState, useRef, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,6 @@ export function StudentRegisterPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [params] = useSearchParams();
-  const navigate = useNavigate();
   const register = useRegisterAsStudent();
   const classId = params.get("classId");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,11 +174,7 @@ export function StudentRegisterPage() {
             ? "Your account has been created and you have joined the class."
             : "Student account created.",
         );
-        if (classId) {
-          navigate(`/student/join/${classId}/success`, { replace: true });
-        } else {
-          navigate("/student/account", { replace: true });
-        }
+        window.location.href = "/student/dashboard";
       } catch (err: unknown) {
         const msg =
           err instanceof Error
