@@ -27,6 +27,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useRegisterAsStudent } from "@/hooks/api/useAuth";
 import type { RegisterAsStudentPayload } from "@/models/auth.interface";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS,
+} from "@/utils/passwordValidation";
 
 type Step = 0 | 1 | 2 | 3;
 const STEP_LABELS = [
@@ -103,8 +107,13 @@ export function StudentRegisterPage() {
       setError("Enter a valid email address.");
       return false;
     }
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const passwordError = getPasswordValidationError(form.password);
+    if (passwordError) {
+      setError(passwordError);
+      return false;
+    }
+    if (!confirm) {
+      setError("Please confirm your password.");
       return false;
     }
     if (form.password !== confirm) {
@@ -254,7 +263,7 @@ export function StudentRegisterPage() {
       }
     >
       {renderStepIndicator()}
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         {step === 0 && (
           <>
             <div className="space-y-2">
@@ -287,6 +296,8 @@ export function StudentRegisterPage() {
                     id="reg-password"
                     className="h-11 pl-10 pr-10"
                     type={showPw ? "text" : "password"}
+                    minLength={8}
+                    maxLength={100}
                     value={form.password}
                     onChange={(e) => set("password", e.target.value)}
                     required
@@ -326,6 +337,15 @@ export function StudentRegisterPage() {
                     </p>
                   </div>
                 )}
+                {form.password.length > 0 &&
+                  getPasswordValidationError(form.password) && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {getPasswordValidationError(form.password)}
+                    </p>
+                  )}
+                <p className="text-xs text-muted-foreground">
+                  {PASSWORD_REQUIREMENTS}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -338,8 +358,13 @@ export function StudentRegisterPage() {
                     id="reg-confirm"
                     className="h-11 pl-10"
                     type={showPw ? "text" : "password"}
+                    minLength={8}
+                    maxLength={100}
                     value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
+                    onChange={(e) => {
+                      setConfirm(e.target.value);
+                      setError("");
+                    }}
                     required
                   />
                 </div>

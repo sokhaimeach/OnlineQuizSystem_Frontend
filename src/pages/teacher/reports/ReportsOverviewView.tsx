@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/EmptyState";
 import {
   ReportCard,
   ReportErrorBlock,
@@ -84,6 +85,16 @@ export function ReportsOverviewView({
   if (!data) return null;
 
   const { summary, distribution, weekly_submissions, weak_subjects, class_averages, top_students, bottom_students, at_risk_students } = data;
+  const hasReportData =
+    summary.total_students > 0 ||
+    summary.total_classes > 0 ||
+    summary.total_subjects > 0 ||
+    summary.total_assignments > 0 ||
+    summary.total_attempts > 0 ||
+    weekly_submissions.length > 0 ||
+    weak_subjects.length > 0 ||
+    top_students.length > 0 ||
+    at_risk_students.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -169,6 +180,24 @@ export function ReportsOverviewView({
         />
       </div>
 
+      {!hasReportData ? (
+        <div className="bg-card rounded-md border border-border">
+          <EmptyState
+            icon={BarChart3}
+            title="No reports available yet."
+            description="Create your first quiz or assignment to start seeing analytics."
+            action={
+              onNavigate
+                ? {
+                    label: "Create Quiz",
+                    onClick: () => onNavigate("create-quiz"),
+                  }
+                : undefined
+            }
+          />
+        </div>
+      ) : (
+        <>
       {/* Level distribution + weekly submissions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ReportCard
@@ -407,6 +436,8 @@ export function ReportsOverviewView({
           </div>
         )}
       </ReportCard>
+        </>
+      )}
     </div>
   );
 }

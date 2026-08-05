@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/EmptyState";
 import type { DashboardSection } from "@/components/app-sidebar";
 import {
   useDashboardSummary,
@@ -166,6 +167,16 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   const recentActivity = recentActivityQuery.data ?? [];
   const upcomingDeadlines = upcomingDeadlinesQuery.data ?? [];
   const improvement = improvementQuery.data;
+  const hasDashboardData = Boolean(
+    (summary?.total_classes ?? 0) > 0 ||
+      (summary?.total_students ?? 0) > 0 ||
+      (summary?.total_quizzes ?? 0) > 0 ||
+      (summary?.total_assignments ?? 0) > 0 ||
+      recentClasses.length > 0 ||
+      recentActivity.length > 0 ||
+      upcomingDeadlines.length > 0 ||
+      (improvement?.students_requiring_improvement.length ?? 0) > 0,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -229,180 +240,201 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
         />
       </div>
 
-      {/* Students Requiring Improvement */}
-      <StudentsRequiringImprovement
-        students={improvement?.students_requiring_improvement ?? []}
-        loading={improvementQuery.isLoading}
-        onNavigate={onNavigate}
-        onQuickView={(studentId) => navigate(`/teacher/students/${studentId}`)}
-      />
+      {!hasDashboardData ? (
+        <div className="bg-card rounded-md border border-border">
+          <EmptyState
+            icon={BookOpen}
+            title="No dashboard data available yet."
+            description="Create your first quiz or assignment to start seeing analytics."
+            action={{
+              label: "Create Quiz",
+              onClick: () => onNavigate("create-quiz"),
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Students Requiring Improvement */}
+          <StudentsRequiringImprovement
+            students={improvement?.students_requiring_improvement ?? []}
+            loading={improvementQuery.isLoading}
+            onNavigate={onNavigate}
+            onQuickView={(studentId) =>
+              navigate(`/teacher/students/${studentId}`)
+            }
+          />
 
-      {/* Insight Cards */}
-      {improvement && (
-        <InsightCards
-          cards={improvement.insight_cards}
-          onNavigate={onNavigate}
-          navigate={navigate}
-        />
-      )}
+          {/* Insight Cards */}
+          {improvement && (
+            <InsightCards
+              cards={improvement.insight_cards}
+              onNavigate={onNavigate}
+              navigate={navigate}
+            />
+          )}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Classes */}
-        <div className="lg:col-span-2 bg-card rounded-md border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground">
-              Recent Classes
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate("classes")}
-              className="text-primary gap-1 text-xs h-7"
-            >
-              View all <ArrowRight className="h-3 w-3" />
-            </Button>
-          </div>
-          {recentClasses.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No classes yet. Create your first class to get started.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {recentClasses.map((cls, idx) => (
-                <button
-                  key={cls.id}
-                  onClick={() => navigate(`/teacher/classes/${cls.id}`)}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Recent Classes */}
+            <div className="lg:col-span-2 bg-card rounded-md border border-border p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Recent Classes
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNavigate("classes")}
+                  className="text-primary gap-1 text-xs h-7"
                 >
-                  <div
-                    className={`h-10 w-10 rounded-lg ${classColors[idx % classColors.length]} flex items-center justify-center text-white text-sm font-bold shrink-0`}
-                  >
-                    {getInitials(cls.class_name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                      {cls.class_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {cls.description || "No description"}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {cls.total_student ?? 0}
-                      </span>
-                      {(cls.assignment_count ?? 0) > 0 && (
-                        <StatusBadge
-                          variant="warning"
-                          className="text-[10px] py-0 px-1.5"
-                        >
-                          {cls.assignment_count} active
-                        </StatusBadge>
-                      )}
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-card rounded-md border border-border p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">
-            Recent Activity
-          </h2>
-          {recentActivity.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No recent activity
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {recentActivity.map((item, idx) => {
-                const Icon = activityIcons[item.type] || Activity;
-                const color = activityColors[item.type] || "text-primary";
-                return (
-                  <div key={idx} className="flex gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      <Icon className={`h-4 w-4 ${color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-foreground leading-snug">
-                        {item.description}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {timeAgo(item.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Upcoming Deadlines */}
-      <div className="bg-card rounded-md border border-border p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-foreground">
-            Upcoming Deadlines
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onNavigate("classes")}
-            className="text-primary gap-1 text-xs h-7"
-          >
-            View all <ArrowRight className="h-3 w-3" />
-          </Button>
-        </div>
-        {upcomingDeadlines.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No upcoming deadlines
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {upcomingDeadlines.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.class_name}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs text-muted-foreground">Submissions</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {item.submitted_count}/{item.total_students}
-                    </p>
-                  </div>
-                  <Progress
-                    value={
-                      item.total_students > 0
-                        ? (item.submitted_count / item.total_students) * 100
-                        : 0
-                    }
-                    className="w-20 h-1.5 hidden md:block"
-                  />
-                  <StatusBadge variant={item.status} dot>
-                    {item.due_label}
-                  </StatusBadge>
-                </div>
+                  View all <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
-            ))}
+              {recentClasses.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No classes yet. Create your first class to get started.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {recentClasses.map((cls, idx) => (
+                    <button
+                      key={cls.id}
+                      onClick={() => navigate(`/teacher/classes/${cls.id}`)}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
+                    >
+                      <div
+                        className={`h-10 w-10 rounded-lg ${classColors[idx % classColors.length]} flex items-center justify-center text-white text-sm font-bold shrink-0`}
+                      >
+                        {getInitials(cls.class_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                          {cls.class_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {cls.description || "No description"}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {cls.total_student ?? 0}
+                          </span>
+                          {(cls.assignment_count ?? 0) > 0 && (
+                            <StatusBadge
+                              variant="warning"
+                              className="text-[10px] py-0 px-1.5"
+                            >
+                              {cls.assignment_count} active
+                            </StatusBadge>
+                          )}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-card rounded-md border border-border p-5">
+              <h2 className="text-sm font-semibold text-foreground mb-4">
+                Recent Activity
+              </h2>
+              {recentActivity.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No recent activity
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {recentActivity.map((item, idx) => {
+                    const Icon = activityIcons[item.type] || Activity;
+                    const color = activityColors[item.type] || "text-primary";
+                    return (
+                      <div key={idx} className="flex gap-3">
+                        <div className="mt-0.5 shrink-0">
+                          <Icon className={`h-4 w-4 ${color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-foreground leading-snug">
+                            {item.description}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {timeAgo(item.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Upcoming Deadlines */}
+          <div className="bg-card rounded-md border border-border p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground">
+                Upcoming Deadlines
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate("classes")}
+                className="text-primary gap-1 text-xs h-7"
+              >
+                View all <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+            {upcomingDeadlines.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No upcoming deadlines
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {upcomingDeadlines.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.class_name}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right hidden sm:block">
+                        <p className="text-xs text-muted-foreground">
+                          Submissions
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          {item.submitted_count}/{item.total_students}
+                        </p>
+                      </div>
+                      <Progress
+                        value={
+                          item.total_students > 0
+                            ? (item.submitted_count / item.total_students) *
+                              100
+                            : 0
+                        }
+                        className="w-20 h-1.5 hidden md:block"
+                      />
+                      <StatusBadge variant={item.status} dot>
+                        {item.due_label}
+                      </StatusBadge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

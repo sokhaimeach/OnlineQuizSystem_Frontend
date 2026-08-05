@@ -29,6 +29,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { RegisterPayload } from "@/models/auth.interface";
 import { useRegisterAsTeacher } from "@/hooks/api/useAuth";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS,
+} from "@/utils/passwordValidation";
 
 const steps = ["Authentication", "User info", "Profile image"];
 
@@ -100,8 +104,8 @@ const Register = () => {
       if (!form.email.trim()) return "Email address is required.";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
         return "Enter a valid email address.";
-      if (form.password.length < 8)
-        return "Password must be at least 8 characters.";
+      const passwordError = getPasswordValidationError(form.password);
+      if (passwordError) return passwordError;
       if (!confirmPassword) return "Please confirm your password.";
       if (form.password !== confirmPassword)
         return "Your passwords do not match.";
@@ -110,6 +114,7 @@ const Register = () => {
     if (stepIndex === 1) {
       if (!form.first_name.trim()) return "First name is required.";
       if (!form.last_name.trim()) return "Last name is required.";
+      if (!form.school_name.trim()) return "School name is required.";
     }
 
     return "";
@@ -211,7 +216,7 @@ const Register = () => {
         <Progress value={stepProgress} className="h-1" />
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         {/* step 1 auth  */}
         {step === 0 && (
           <div className="space-y-5">
@@ -253,9 +258,10 @@ const Register = () => {
                     id="register-password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    placeholder="At least 8 characters"
+                    placeholder="Letters and numbers"
                     className="h-10 pr-9"
                     minLength={8}
+                    maxLength={100}
                     value={form.password}
                     onChange={(event) =>
                       updateField("password", event.target.value)
@@ -277,6 +283,15 @@ const Register = () => {
                     )}
                   </button>
                 </div>
+                {form.password.length > 0 &&
+                  getPasswordValidationError(form.password) && (
+                    <p className="text-xs text-destructive">
+                      {getPasswordValidationError(form.password)}
+                    </p>
+                  )}
+                <p className="text-xs text-muted-foreground">
+                  {PASSWORD_REQUIREMENTS}
+                </p>
               </div>
               <div className="space-y-2">
                 <label
@@ -293,6 +308,7 @@ const Register = () => {
                   placeholder="Repeat password"
                   className="h-10"
                   minLength={8}
+                  maxLength={100}
                   value={confirmPassword}
                   onChange={(event) => {
                     setConfirmPassword(event.target.value);
@@ -300,6 +316,12 @@ const Register = () => {
                   }}
                   required
                 />
+                {confirmPassword.length > 0 &&
+                  form.password !== confirmPassword && (
+                    <p className="text-xs text-destructive">
+                      Your passwords do not match.
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -356,6 +378,7 @@ const Register = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="school-name">
                   School
+                  <RequiredMark />
                 </label>
                 <div className="relative">
                   <School className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -368,6 +391,7 @@ const Register = () => {
                     onChange={(event) =>
                       updateField("school_name", event.target.value)
                     }
+                    required
                   />
                 </div>
               </div>
