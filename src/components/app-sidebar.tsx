@@ -91,6 +91,7 @@ export type DashboardSection =
   | "create-quiz"
   | "question-bank"
   | "analytics"
+  | "ai-assistant"
   | "reports"
   | "student-performance"
   | "student-report"

@@ -13,6 +13,7 @@ import { QuizDetailView } from './pages/teacher/QuizDetailView'
 import { CreateQuizView } from './pages/teacher/CreateQuizView'
 import { QuestionBankView } from './pages/teacher/QuestionBankView'
 import { AnalyticsView } from './pages/teacher/AnalyticsView'
+import { AiAssistantView } from './pages/teacher/AiAssistantView'
 import { ReportsOverviewView } from './pages/teacher/reports/ReportsOverviewView'
 import { StudentPerformanceView } from './pages/teacher/reports/StudentPerformanceView'
 import { StudentReportView } from './pages/teacher/reports/StudentReportView'
@@ -120,6 +121,7 @@ function App() {
                 <Route path='create-quiz' element={<CreateQuizRoute />} />
                 <Route path='question-bank' element={<QuestionBankRoute />} />
                 <Route path='analytics' element={<AnalyticsRoute />} />
+                <Route path='ai-assistant' element={<AiAssistantView />} />
                 <Route path='reports' element={<ReportsOverviewRoute />} />
                 <Route path='reports/students' element={<StudentPerformanceView />} />
                 <Route path='reports/students/at-risk' element={<AtRiskStudentsView />} />

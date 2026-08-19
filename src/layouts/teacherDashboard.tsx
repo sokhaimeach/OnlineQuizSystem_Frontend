@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useGetClassById } from "@/hooks/api/useClass";
 import { useGetSubjectOptions } from "@/hooks/api/useSubject";
 import { useGetStudentById } from "@/hooks/api/useStudent";
+import { AIAssistantFloating } from "@/components/ai/AIAssistantFloating";
 
 export interface TeacherDashboardOutletContext {
   onNavigate: (section: DashboardSection) => void;
@@ -37,6 +38,7 @@ const sectionBreadcrumb: Record<
   "create-quiz": [{ label: "Content" }, { label: "Create Quiz" }],
   "question-bank": [{ label: "Content" }, { label: "Question Bank" }],
   analytics: [{ label: "Insights" }, { label: "Analytics" }],
+  "ai-assistant": [{ label: "Insights" }, { label: "AI Assistant" }],
   reports: [{ label: "Insights" }, { label: "Reports" }],
   "student-performance": [
     { label: "Insights" },
@@ -86,6 +88,7 @@ const sectionToRoute: Record<DashboardSection, string> = {
   "create-quiz": "create-quiz",
   "question-bank": "question-bank",
   analytics: "analytics",
+  "ai-assistant": "ai-assistant",
   reports: "reports",
   "student-performance": "reports/students",
   "student-report": "reports/students",
@@ -233,6 +236,7 @@ export default function TeacherDashboard() {
             </div>
           </main>
         </SidebarInset>
+        <AIAssistantFloating context={{ classId, subjectId, studentId }} currentClassName={className} />
       </SidebarProvider>
     </ThemeProvider>
   );
